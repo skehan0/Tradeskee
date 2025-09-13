@@ -15,3 +15,6 @@ langchain==0.3.14
 ollama==0.4.7
 requests==2.32.3
 jspdf
+python-jose[cryptography]
+passlib[bcrypt]
+python-multipart

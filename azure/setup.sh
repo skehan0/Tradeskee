@@ -113,8 +113,8 @@ echo -e "${GREEN}AZURE_RESOURCE_GROUP:${NC} $RESOURCE_GROUP"
 echo -e "${GREEN}AZURE_REGISTRY_USERNAME:${NC} $ACR_USERNAME"
 echo -e "${GREEN}AZURE_REGISTRY_PASSWORD:${NC} $ACR_PASSWORD"
 echo ""
-echo -e "${GREEN}STAGING_DATABASE_URL:${NC} mongodb://admin:secure_password_123@localhost:27017/fyp_staging"
-echo -e "${GREEN}PRODUCTION_DATABASE_URL:${NC} mongodb://admin:secure_password_123@localhost:27017/fyp_production"
+echo -e "${GREEN}STAGING_DATABASE_URL:${NC} mongodb://admin:[MONGO_STAGING_PASSWORD]@localhost:27017/fyp_staging"
+echo -e "${GREEN}PRODUCTION_DATABASE_URL:${NC} mongodb://admin:[MONGO_PRODUCTION_PASSWORD]@localhost:27017/fyp_production"
 echo ""
 
 # Save configuration to file
@@ -135,8 +135,8 @@ AZURE_CREDENTIALS=$SP_JSON
 AZURE_RESOURCE_GROUP=$RESOURCE_GROUP
 AZURE_REGISTRY_USERNAME=$ACR_USERNAME
 AZURE_REGISTRY_PASSWORD=$ACR_PASSWORD
-STAGING_DATABASE_URL=mongodb://admin:secure_password_123@localhost:27017/fyp_staging
-PRODUCTION_DATABASE_URL=mongodb://admin:secure_password_123@localhost:27017/fyp_production
+STAGING_DATABASE_URL=mongodb://admin:[SET_YOUR_MONGO_STAGING_PASSWORD]@localhost:27017/fyp_staging
+PRODUCTION_DATABASE_URL=mongodb://admin:[SET_YOUR_MONGO_PRODUCTION_PASSWORD]@localhost:27017/fyp_production
 EOF
 
 print_success "Configuration saved to $CONFIG_FILE"

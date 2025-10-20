@@ -116,9 +116,9 @@ Write-Host "AZURE_REGISTRY_PASSWORD:" -ForegroundColor $Colors.Green -NoNewline
 Write-Host " $AcrPassword"
 Write-Host ""
 Write-Host "STAGING_DATABASE_URL:" -ForegroundColor $Colors.Green -NoNewline
-Write-Host " mongodb://admin:secure_password_123@localhost:27017/fyp_staging"
+Write-Host " mongodb://admin:[MONGO_STAGING_PASSWORD]@localhost:27017/fyp_staging"
 Write-Host "PRODUCTION_DATABASE_URL:" -ForegroundColor $Colors.Green -NoNewline
-Write-Host " mongodb://admin:secure_password_123@localhost:27017/fyp_production"
+Write-Host " mongodb://admin:[MONGO_PRODUCTION_PASSWORD]@localhost:27017/fyp_production"
 Write-Host ""
 
 # Save configuration to file
@@ -139,8 +139,8 @@ AZURE_CREDENTIALS=$SpJson
 AZURE_RESOURCE_GROUP=$ResourceGroup
 AZURE_REGISTRY_USERNAME=$AcrUsername
 AZURE_REGISTRY_PASSWORD=$AcrPassword
-STAGING_DATABASE_URL=mongodb://admin:secure_password_123@localhost:27017/fyp_staging
-PRODUCTION_DATABASE_URL=mongodb://admin:secure_password_123@localhost:27017/fyp_production
+STAGING_DATABASE_URL=mongodb://admin:[SET_YOUR_MONGO_STAGING_PASSWORD]@localhost:27017/fyp_staging
+PRODUCTION_DATABASE_URL=mongodb://admin:[SET_YOUR_MONGO_PRODUCTION_PASSWORD]@localhost:27017/fyp_production
 "@
 
 $ConfigContent | Out-File -FilePath $ConfigFile -Encoding UTF8

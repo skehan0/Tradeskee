@@ -66,6 +66,12 @@
       "metadata": {
         "description": "MongoDB connection string"
       }
+    },
+    "mongoPassword": {
+      "type": "securestring",
+      "metadata": {
+        "description": "MongoDB root password"
+      }
     }
   },
   "variables": {
@@ -165,7 +171,7 @@
                 },
                 {
                   "name": "MONGO_INITDB_ROOT_PASSWORD",
-                  "secureValue": "secure_password_123"
+                  "secureValue": "[parameters('mongoPassword')]"
                 }
               ],
               "resources": {

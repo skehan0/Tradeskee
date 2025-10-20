@@ -36,8 +36,7 @@ jobs:
     
     - name: "Run tests"
       run: |
-        echo "Tests would run here!"
-        # python -m pytest src/test/ -v
+        python -m pytest src/test/ -v
     
     - name: "Lint code"
       run: |

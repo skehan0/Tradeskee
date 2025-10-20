@@ -3,6 +3,7 @@ from fastapi import HTTPException
 from cachetools import TTLCache
 import os
 from dotenv import load_dotenv
+from motor.motor_asyncio import AsyncIOMotorClient
 from src.mongoDB.database import database
 
 # Load environment variables from .env file

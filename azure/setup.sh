@@ -11,7 +11,7 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-echo -e "${BLUE}🚀 FYP Stock Analyzer - Azure Setup${NC}"
+echo -e "${BLUE}FYP Stock Analyzer - Azure Setup${NC}"
 echo "================================================"
 
 # Configuration variables
@@ -22,19 +22,19 @@ SUBSCRIPTION_ID=""
 
 # Function to print colored messages
 print_step() {
-    echo -e "${BLUE}📋 $1${NC}"
+    echo -e "${BLUE}Step: $1${NC}"
 }
 
 print_success() {
-    echo -e "${GREEN}✅ $1${NC}"
+    echo -e "${GREEN}Success: $1${NC}"
 }
 
 print_warning() {
-    echo -e "${YELLOW}⚠️  $1${NC}"
+    echo -e "${YELLOW}Warning: $1${NC}"
 }
 
 print_error() {
-    echo -e "${RED}❌ $1${NC}"
+    echo -e "${RED}Error: $1${NC}"
 }
 
 # Check if Azure CLI is installed
@@ -101,7 +101,7 @@ print_success "Service principal created"
 
 # Display GitHub Secrets
 echo ""
-echo -e "${YELLOW}🔐 GitHub Secrets Configuration${NC}"
+echo -e "${YELLOW}GitHub Secrets Configuration${NC}"
 echo "================================================"
 echo "Add these secrets to your GitHub repository:"
 echo "Settings → Secrets and variables → Actions → New repository secret"
@@ -142,14 +142,14 @@ EOF
 print_success "Configuration saved to $CONFIG_FILE"
 
 echo ""
-echo -e "${BLUE}🎉 Azure setup complete!${NC}"
+echo -e "${BLUE}Azure setup complete!${NC}"
 echo "================================================"
 echo "Next steps:"
 echo "1. Add the GitHub secrets shown above to your repository"
 echo "2. Push code to main branch to trigger CI/CD pipeline"
 echo "3. Monitor deployment in GitHub Actions"
 echo ""
-echo -e "${YELLOW}⚡ Quick commands:${NC}"
+echo -e "${YELLOW}Quick commands:${NC}"
 echo "• View ACR: az acr repository list --name $ACR_NAME --output table"
 echo "• View containers: az container list --resource-group $RESOURCE_GROUP --output table"
 echo "• Delete everything: az group delete --name $RESOURCE_GROUP --yes --no-wait"

@@ -1,8 +1,8 @@
-# Azure Deployment Guide 🚀
+# Azure Deployment Guide
 
 This directory contains all the necessary files and scripts to deploy the FYP Stock Analyzer to Azure using Infrastructure as Code (IaC) and automated CI/CD pipelines.
 
-## 📁 Files Overview
+## Files Overview
 
 ```
 azure/
@@ -13,7 +13,7 @@ azure/
 └── README.md                 # This file
 ```
 
-## 🎯 Quick Start
+## Quick Start
 
 ### Prerequisites
 - Azure CLI installed and configured
@@ -61,7 +61,7 @@ git commit -m "feat: Add Azure deployment configuration"
 git push origin main
 ```
 
-## 🏗️ Infrastructure Components
+## Infrastructure Components
 
 ### Azure Container Registry (ACR)
 - **Purpose**: Stores our Docker images securely
@@ -84,14 +84,14 @@ git push origin main
 ┌─────────────────────────────────────────┐
 │             Azure Container Group       │
 ├─────────────────────────────────────────┤
-│ 🐍 Backend (FastAPI)     Port: 8000    │
-│ ⚛️  Frontend (React)      Port: 80      │
-│ 🍃 MongoDB               Port: 27017    │
-│ 🤖 Ollama (LLM)          Port: 11434    │
+│ Backend (FastAPI)        Port: 8000     │
+│ Frontend (React)         Port: 80       │
+│ MongoDB                  Port: 27017    │
+│ Ollama (LLM)             Port: 11434    │
 └─────────────────────────────────────────┘
 ```
 
-## 🔄 CI/CD Pipeline Flow
+## CI/CD Pipeline Flow
 
 ```mermaid
 graph TD
@@ -106,14 +106,14 @@ graph TD
 
 ### Pipeline Stages
 
-1. **🧪 Test**: Python tests, linting, security scans
-2. **🛡️ Security**: TruffleHog secrets scan, dependency audits
-3. **🐋 Build**: Docker image creation and testing
-4. **📤 Push**: Upload images to Azure Container Registry
-5. **🎭 Staging**: Automatic deployment to staging environment
-6. **🌟 Production**: Manual approval required for production
+1. **Test**: Python tests, linting, security scans
+2. **Security**: TruffleHog secrets scan, dependency audits
+3. **Build**: Docker image creation and testing
+4. **Push**: Upload images to Azure Container Registry
+5. **Staging**: Automatic deployment to staging environment
+6. **Production**: Manual approval required for production
 
-## 🌐 Environment URLs
+## Environment URLs
 
 After deployment, your applications will be available at:
 
@@ -125,7 +125,7 @@ After deployment, your applications will be available at:
 - Backend: `http://fyp-backend-prod.eastus.azurecontainer.io:8000`
 - Frontend: `http://fyp-backend-prod.eastus.azurecontainer.io`
 
-## 💰 Cost Estimation (Azure Student Credits)
+## Cost Estimation (Azure Student Credits)
 
 | Component | Monthly Cost | Notes |
 |-----------|--------------|-------|
@@ -134,7 +134,7 @@ After deployment, your applications will be available at:
 | ACI Production | ~$25/month | 2.5 CPU, 5GB RAM |
 | **Total** | **~$45/month** | Well within student credit limits |
 
-## 🔧 Troubleshooting
+## Troubleshooting
 
 ### Common Issues
 
@@ -178,7 +178,7 @@ az container show --resource-group fyp-stock-analyzer-rg --name fyp-backend-stag
 az group delete --name fyp-stock-analyzer-rg --yes --no-wait
 ```
 
-## 🎓 Learning Objectives
+## Learning Objectives
 
 This Azure deployment teaches you:
 
@@ -189,7 +189,7 @@ This Azure deployment teaches you:
 5. **Environment Management**: Staging vs production deployment strategies
 6. **Monitoring**: Container health checks and logging
 
-## 🔄 Next Steps
+## Next Steps
 
 1. **Custom Domains**: Set up custom domain names for your applications
 2. **SSL Certificates**: Add HTTPS encryption
@@ -197,7 +197,7 @@ This Azure deployment teaches you:
 4. **Load Balancing**: Add Azure Load Balancer for high availability
 5. **Monitoring**: Implement Azure Application Insights
 
-## 🆘 Support
+## Support
 
 If you encounter issues:
 1. Check the GitHub Actions logs for detailed error messages
@@ -207,4 +207,4 @@ If you encounter issues:
 
 ---
 
-**Happy Deploying! 🚀**
+**Happy Deploying!**

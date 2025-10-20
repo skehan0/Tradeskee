@@ -17,25 +17,25 @@ $Colors = @{
 
 function Write-Step {
     param([string]$Message)
-    Write-Host "📋 $Message" -ForegroundColor $Colors.Blue
+    Write-Host "Step: $Message" -ForegroundColor $Colors.Blue
 }
 
 function Write-Success {
     param([string]$Message)
-    Write-Host "✅ $Message" -ForegroundColor $Colors.Green
+    Write-Host "Success: $Message" -ForegroundColor $Colors.Green
 }
 
 function Write-Warning {
     param([string]$Message)
-    Write-Host "⚠️  $Message" -ForegroundColor $Colors.Yellow
+    Write-Host "Warning: $Message" -ForegroundColor $Colors.Yellow
 }
 
 function Write-Error {
     param([string]$Message)
-    Write-Host "❌ $Message" -ForegroundColor $Colors.Red
+    Write-Host "Error: $Message" -ForegroundColor $Colors.Red
 }
 
-Write-Host "🚀 FYP Stock Analyzer - Azure Setup" -ForegroundColor $Colors.Blue
+Write-Host "FYP Stock Analyzer - Azure Setup" -ForegroundColor $Colors.Blue
 Write-Host "================================================"
 
 # Check if Azure CLI is installed
@@ -100,7 +100,7 @@ Write-Success "Service principal created"
 
 # Display GitHub Secrets
 Write-Host ""
-Write-Host "🔐 GitHub Secrets Configuration" -ForegroundColor $Colors.Yellow
+Write-Host "GitHub Secrets Configuration" -ForegroundColor $Colors.Yellow
 Write-Host "================================================"
 Write-Host "Add these secrets to your GitHub repository:"
 Write-Host "Settings → Secrets and variables → Actions → New repository secret"
@@ -147,14 +147,14 @@ $ConfigContent | Out-File -FilePath $ConfigFile -Encoding UTF8
 Write-Success "Configuration saved to $ConfigFile"
 
 Write-Host ""
-Write-Host "🎉 Azure setup complete!" -ForegroundColor $Colors.Blue
+Write-Host "Azure setup complete!" -ForegroundColor $Colors.Blue
 Write-Host "================================================"
 Write-Host "Next steps:"
 Write-Host "1. Add the GitHub secrets shown above to your repository"
 Write-Host "2. Push code to main branch to trigger CI/CD pipeline"
 Write-Host "3. Monitor deployment in GitHub Actions"
 Write-Host ""
-Write-Host "⚡ Quick commands:" -ForegroundColor $Colors.Yellow
+Write-Host "Quick commands:" -ForegroundColor $Colors.Yellow
 Write-Host "• View ACR: az acr repository list --name $AcrName --output table"
 Write-Host "• View containers: az container list --resource-group $ResourceGroup --output table"
 Write-Host "• Delete everything: az group delete --name $ResourceGroup --yes --no-wait"

@@ -486,7 +486,7 @@ async def fetch_live_market_prices():
     """
     Fetching live market prices for specified stocks to display in the frontend
     """
-    global market_data_cache
+    global market_data_cache  # noqa: F824
     current_time = time.time()
     
     # Refresh market data every 60 minutes

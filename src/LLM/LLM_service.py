@@ -150,9 +150,6 @@ async def send_to_deepseek(llm_response, stock_data=None, model='deepseek-r1:1.5
             print(f"Debug: Error converting stock data to JSON: {str(e)}")
             stock_data_json = "Error converting stock data to JSON."
 
-        payload["messages"].insert(
-            0, {"role": "user", "content": f"Stock Data: {stock_data}"})
-
     try:
         async with httpx.AsyncClient() as client:
             # Stream the response

@@ -18,8 +18,7 @@ app = FastAPI()
 # Configure CORS
 origins = [
     "http://localhost:3000",
-    "http://localhost:3001",  # Add this if frontend is on 3001
-    "*"  
+    "http://localhost:3001"  # Add this if frontend is on 3001
 ]
 
 app.add_middleware(
@@ -42,4 +41,6 @@ async def health_check():
     return {"status": "healthy"}
 
 if __name__ == "__main__":
-    uvicorn.run("src.main:app", host="0.0.0.0", port=8000, reload=True)
+    environment = os.getenv("ENV", "development")
+    reload_flag = environment == "development"
+    uvicorn.run("src.main:app", host="0.0.0.0", port=8000, reload=reload_flag)

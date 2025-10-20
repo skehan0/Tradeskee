@@ -49,6 +49,13 @@ jobs:
         pip install flake8
         flake8 src/ --count --select=E9,F63,F7,F82 --show-source --statistics
 
+    # Step 6: Security scan for Python dependencies
+    - name: "🔒 Security scan"
+      run: |
+        pip install safety bandit
+        safety check --json || true
+        bandit -r src/ -f json || true
+
   # Job 2: Build and test our Docker containers
   test-docker:
     name: "🐋 Test Docker Build"
@@ -83,3 +90,27 @@ jobs:
     - name: "🚀 Test containers start"
       run: |
         echo "🎉 Container build tests passed!"
+
+  # Job 3: Security scan for frontend dependencies
+  security-scan:
+    name: "🛡️ Security Scan"
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+    - name: "📥 Checkout code"
+      uses: actions/checkout@v4
+
+    # Scan Node.js dependencies
+    - name: "🔍 Audit npm dependencies"
+      working-directory: ./tradely
+      run: |
+        npm audit --audit-level high || true
+        
+    # Scan for secrets in code
+    - name: "🕵️ Scan for secrets"
+      uses: trufflesecurity/trufflehog@main
+      with:
+        path: ./
+        base: main
+        head: HEAD

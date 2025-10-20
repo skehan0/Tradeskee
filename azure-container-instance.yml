@@ -1,0 +1,51 @@
+# Azure Container Instances deployment configuration
+# This file will be used by our CI/CD pipeline to deploy to Azure
+
+apiVersion: 2019-12-01
+location: eastus
+name: ai-stock-analyzer
+properties:
+  containers:
+  - name: backend
+    properties:
+      image: ghcr.io/skehan0/tradeskee-backend:latest
+      ports:
+      - port: 8000
+        protocol: TCP
+      environmentVariables:
+      - name: ENVIRONMENT
+        value: production
+      - name: DEBUG
+        value: "false"
+      # Secrets will be managed through Azure Key Vault
+      resources:
+        requests:
+          cpu: 0.5
+          memoryInGb: 1.0
+  
+  - name: frontend
+    properties:
+      image: ghcr.io/skehan0/tradeskee-frontend:latest
+      ports:
+      - port: 80
+        protocol: TCP
+      environmentVariables:
+      - name: REACT_APP_API_URL
+        value: https://your-domain.azurecontainer.io:8000
+      resources:
+        requests:
+          cpu: 0.25
+          memoryInGb: 0.5
+
+  osType: Linux
+  restartPolicy: Always
+  ipAddress:
+    type: Public
+    ports:
+    - protocol: TCP
+      port: 80
+    - protocol: TCP
+      port: 8000
+tags:
+  Environment: Production
+  Project: TradeskeeAI

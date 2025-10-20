@@ -4,7 +4,10 @@ from typing import List
 import uvicorn
 from dotenv import load_dotenv
 import os
-from src.alphaVantage.routes import stock_routes
+try:
+    from alphaVantage.routes import stock_routes
+except ModuleNotFoundError:
+    from src.alphaVantage.routes import stock_routes
 from motor.motor_asyncio import AsyncIOMotorClient
 from contextlib import asynccontextmanager
 from logging import info
@@ -15,7 +18,9 @@ app = FastAPI()
 
 # Configure CORS
 origins = [
-    "http://localhost:3000"
+    "http://localhost:3000",
+    "http://localhost:3001",  # Add this if frontend is on 3001
+    "*"  
 ]
 
 app.add_middleware(
@@ -33,5 +38,9 @@ app.include_router(stock_routes.router)
 async def root():
     return {"message": "Welcome to the Stock API"}
 
+@app.get("/health")
+async def health_check():
+    return {"status": "healthy"}
+
 if __name__ == "__main__":
-    uvicorn.run("src.main:app", host="127.0.0.1", port=8000, reload=True)
+    uvicorn.run("src.main:app", host="0.0.0.0", port=8000, reload=True)

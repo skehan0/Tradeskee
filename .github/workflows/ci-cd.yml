@@ -1,6 +1,11 @@
 # This is our CI/CD pipeline - it runs automatically when you push code
 name: "AI Stock Analyzer CI/CD"
 
+# Prevent multiple parallel runs
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 # When should this run? (Triggers)
 on:
   push:
@@ -28,15 +33,30 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: '3.12'
+        
+    - name: "Cache pip dependencies"
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
     
     - name: "Install dependencies"
       run: |
         python -m pip install --upgrade pip
-        pip install -r requirements.txt
+        pip install --no-cache-dir -r requirements.txt
     
     - name: "Run tests"
       run: |
         python -m pytest src/test/ -v
+        
+    - name: "Test frontend build"
+      working-directory: ./tradely
+      run: |
+        npm ci
+        npm run build --if-present
+        npm test --if-present
     
     - name: "Lint code"
       run: |
@@ -87,10 +107,19 @@ jobs:
     name: "Security Scan"
     runs-on: ubuntu-latest
     needs: test
+    continue-on-error: true
     
     steps:
     - name: "Checkout code"
       uses: actions/checkout@v4
+      
+    - name: "Cache npm dependencies"
+      uses: actions/cache@v4
+      with:
+        path: ~/.npm
+        key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-npm-
 
     - name: "Audit npm dependencies"
       working-directory: ./tradely

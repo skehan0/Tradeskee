@@ -8,7 +8,6 @@ try:
     from alphaVantage.routes import stock_routes
 except ModuleNotFoundError:
     from src.alphaVantage.routes import stock_routes
-from motor.motor_asyncio import AsyncIOMotorClient
 from contextlib import asynccontextmanager
 from logging import info
 

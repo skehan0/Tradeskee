@@ -17,7 +17,8 @@ load_dotenv()
 
 # Load Alpha Vantage API key from environment variable
 API_KEY = os.getenv("ALPHA_VANTAGE_API_KEY")
-if not API_KEY:
+# Only raise error if not in testing environment
+if not API_KEY and not os.getenv("TESTING", False):
     raise ValueError("Alpha Vantage API key is not set in environment variables.")
 
 # MongoDB setup

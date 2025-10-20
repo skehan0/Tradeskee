@@ -5,14 +5,22 @@ services:
       dockerfile: Dockerfile
     container_name: fyp-backend
     ports:
-      - "8000:8000"   # expose backend to host
+      - "8001:8000"   # Changed external port to avoid conflicts
     environment:
-      - MONGODB_URI=mongodb://mongo:27017/tradely
+      - MONGO_URI=mongodb://mongo:27017/tradely
       - LLM_API_URL=http://ollama:11434/api/chat
       - ALPHA_VANTAGE_API_KEY=${ALPHA_VANTAGE_API_KEY}
     depends_on:
       - mongo
       - ollama
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    read_only: false
+    tmpfs:
+      - /tmp
+    networks:
+      - app-network
 
   frontend:
     build:
@@ -20,28 +28,54 @@ services:
       dockerfile: Dockerfile
     container_name: fyp-frontend
     ports:
-      - "3000:3000"
+      - "3001:80"   # Frontend uses nginx on port 80, external port 3001
     environment:
-      - REACT_APP_API_URL=http://backend:8000  # backend container name, not localhost
+      - REACT_APP_API_URL=http://localhost:8001  # Browser needs localhost, not container name
     depends_on:
       - backend
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx
+      - /var/run
+    networks:
+      - app-network
 
   mongo:
-    image: mongo:7
+    image: mongo:7-jammy  # Use Ubuntu-based image for better security
     container_name: fyp-mongo
     ports:
-      - "27017:27017"
+      - "27018:27017"   # Changed external port to avoid conflicts
     volumes:
       - mongo_data:/data/db
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD:-changeme123}
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - app-network
 
   ollama:
     image: ollama/ollama:latest
     container_name: fyp-ollama
     ports:
-      - "11434:11434"
+      - "11435:11434"   # Changed external port to avoid conflicts
     volumes:
       - ollama_data:/root/.ollama
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - app-network
 
 volumes:
   mongo_data:
   ollama_data:
+
+networks:
+  app-network:
+    driver: bridge

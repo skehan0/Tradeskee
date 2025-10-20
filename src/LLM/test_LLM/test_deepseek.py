@@ -29,7 +29,7 @@ url = "http://localhost:11434/api/chat"
 
 # Define the payload (your input prompt)
 payload = {
-    "model": "deepseek-r1:7b",  # Replace with the model name you're using
+    "model": "deepseek-r1:1.5b",  # Replace with the model name you're using
     "messages": [{"role": "user", "content": analysis}]
 }
 

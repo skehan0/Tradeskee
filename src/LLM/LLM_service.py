@@ -92,10 +92,12 @@ async def send_prompt_to_llm(prompt: str, model="gemma3:4b") -> str:
         raise RuntimeError(f"Failed to send prompt to LLM: {str(e)}")
 
 
-async def send_to_deepseek(llm_response, stock_data=None, model='deepseek-r1:7b'):
+async def send_to_deepseek(llm_response, stock_data=None, model='deepseek-r1:1.5b'):
     """
     Send the LLM response to the DeepThinking model for final analysis.
     """
+    print("Debug: llm_response", llm_response)
+    print("Debug: stock_data", stock_data)
     url = "http://localhost:11434/api/chat"
     payload = {
     "model": model,
@@ -140,8 +142,13 @@ async def send_to_deepseek(llm_response, stock_data=None, model='deepseek-r1:7b'
 
    # Optionally include stock data in the prompt
     if stock_data:
-        payload["messages"].insert(
-            0, {"role": "user", "content": f"Stock Data: {stock_data}"})
+        try:
+            # Convert to JSON string, handling datetime objects
+            stock_data_json = json.dumps(stock_data, default=str, indent=2)
+            payload["messages"].insert(0, {"role": "user", "content": f"Stock Data: {stock_data_json}"})
+        except Exception as e:
+            print(f"Debug: Error converting stock data to JSON: {str(e)}")
+            stock_data_json = "Error converting stock data to JSON."
 
     try:
         async with httpx.AsyncClient() as client:
@@ -180,7 +187,7 @@ def store_analysis(symbol, analysis):
         {"symbol": symbol},
         {"$set": {
             "analysis": analysis,
-            "timestamp": datetime.now()
+            "timestamp": datetime.now().isoformat()
         }},
         upsert=True
     )

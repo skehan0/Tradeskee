@@ -1,5 +1,5 @@
-# Build stage
-FROM node:20-alpine AS build
+# Build stage - use latest secure Node.js
+FROM node:20.18-alpine AS build
 
 WORKDIR /app
 
@@ -15,14 +15,13 @@ COPY . .
 RUN npm run build
 
 # Production stage with secure nginx
-FROM nginx:1.25-alpine
+FROM nginx:1.27-alpine
 
 # Install security updates
 RUN apk update && apk upgrade && apk add --no-cache curl
 
-# Create non-root user
-RUN addgroup -g 1001 -S nginx && \
-    adduser -S -D -H -u 1001 -h /var/cache/nginx -s /sbin/nologin -G nginx -g nginx nginx
+# Use existing nginx user instead of creating new one
+RUN chown -R nginx:nginx /var/cache/nginx /var/run /var/log/nginx
 
 # Copy built application
 COPY --from=build /app/build /usr/share/nginx/html

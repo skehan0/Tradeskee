@@ -18,6 +18,10 @@ motor>=3.7.0
 # Configuration
 python-dotenv>=1.0.1
 
+# Development Tools
+flake8>=7.3.0
+pytest>=8.3.4
+
 # AI/ML - Updated versions
 openai>=1.54.4
 langchain>=0.3.14

@@ -19,6 +19,14 @@ client = AsyncIOMotorClient(os.getenv("MONGODB_URI"))
 db = client.tradely
 
 
+# Helper function to safely convert to float
+def safe_float(value, default=0):
+    try:
+        return float(value) if value and value != 'N/A' and str(value).lower() != 'none' else default
+    except (ValueError, TypeError):
+        return default
+
+
 def perform_analysis(stock_data: dict) -> str:
     """
     Perform analysis on the stock data and return a formatted prompt.
@@ -112,13 +120,6 @@ def perform_analysis(stock_data: dict) -> str:
             latest_sma = f"{sum(closes) / len(closes):.2f}"
         except:
             latest_sma = 'N/A'
-    
-    # Helper function to safely convert to float
-    def safe_float(value, default=0):
-        try:
-            return float(value) if value and value != 'N/A' and str(value).lower() != 'none' else default
-        except (ValueError, TypeError):
-            return default
     
     analysis = f"""
     Goal: Conduct a comprehensive financial analysis of {metadata.get('ticker', 'UNKNOWN').upper()} ({metadata.get('about_' + metadata.get('ticker', '').lower(), 'AstraZeneca PLC')}) based on recent market trends, historical data, and technical indicators.

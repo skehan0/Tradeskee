@@ -19,46 +19,183 @@ client = AsyncIOMotorClient(os.getenv("MONGODB_URI"))
 db = client.tradely
 
 
+# Helper function to safely convert to float
+def safe_float(value, default=0):
+    try:
+        return float(value) if value and value != 'N/A' and str(value).lower() != 'none' else default
+    except (ValueError, TypeError):
+        return default
+
+
 def perform_analysis(stock_data: dict) -> str:
     """
     Perform analysis on the stock data and return a formatted prompt.
     """
     
-    # Define the sections to analyze
-    sections = [
-        "Price Data",
-        "Technical Indicators", 
-        "Market Sentiment",
-        "Financial Metrics",
-        "Risk Factors"
-    ]
+    # Extract key data sections
+    metadata = stock_data.get('metadata', {})
+    historical = stock_data.get('historical_data', {}).get('historical_data', [])
+    news = stock_data.get('news', [])
+    income_statement = stock_data.get('income_statement', {}).get('annual_reports', [])
+    balance_sheet = stock_data.get('balance_sheet', {}).get('annual_reports', [])
+    cash_flow = stock_data.get('cash_flow', {}).get('annual_reports', [])
+    sma_data = stock_data.get('sma', {})
+    ema_data = stock_data.get('ema', {})
+    
+    # Get the most recent financial data
+    latest_income = income_statement[0] if income_statement else {}
+    latest_balance = balance_sheet[0] if balance_sheet else {}
+    latest_cashflow = cash_flow[0] if cash_flow else {}
+    
+    # Get recent price data and extract current price from historical data if metadata is N/A
+    recent_prices = historical[:5] if historical else []
+    current_price = metadata.get('current_price', 'N/A')
+    if current_price == 'N/A' and recent_prices:
+        current_price = recent_prices[0].get('close', 'N/A')
+    
+    # Calculate market cap from shares outstanding and current price if not available
+    market_cap = metadata.get('market_cap', 'N/A')
+    if market_cap == 'N/A' and current_price != 'N/A' and latest_balance.get('commonStockSharesOutstanding'):
+        try:
+            shares_outstanding = safe_float(latest_balance.get('commonStockSharesOutstanding', 0))
+            market_cap = str(int(safe_float(current_price) * shares_outstanding))
+        except:
+            market_cap = 'N/A'
+    
+    # Calculate PE ratio if not available
+    pe_ratio = metadata.get('pe_ratio', 'N/A')
+    if pe_ratio == 'N/A' and current_price != 'N/A' and latest_income.get('netIncome'):
+        try:
+            shares_outstanding = safe_float(latest_balance.get('commonStockSharesOutstanding', 0))
+            if shares_outstanding > 0:
+                eps = safe_float(latest_income.get('netIncome', 0)) / shares_outstanding
+                if eps > 0:
+                    pe_ratio = f"{safe_float(current_price) / eps:.2f}"
+        except:
+            pe_ratio = 'N/A'
+    
+    # Calculate EPS if not available
+    eps = metadata.get('eps', 'N/A')
+    if eps == 'N/A' and latest_income.get('netIncome'):
+        try:
+            shares_outstanding = safe_float(latest_balance.get('commonStockSharesOutstanding', 0))
+            if shares_outstanding > 0:
+                eps = f"{safe_float(latest_income.get('netIncome', 0)) / shares_outstanding:.2f}"
+        except:
+            eps = 'N/A'
+    
+    # Calculate dividend yield if not available
+    dividend_yield = metadata.get('dividend_yield', 'N/A')
+    if dividend_yield == 'N/A' and current_price != 'N/A' and latest_cashflow.get('dividendPayoutCommonStock'):
+        try:
+            shares_outstanding = safe_float(latest_balance.get('commonStockSharesOutstanding', 0))
+            if shares_outstanding > 0:
+                annual_dividend_per_share = safe_float(latest_cashflow.get('dividendPayoutCommonStock', 0)) / shares_outstanding
+                dividend_yield = f"{(annual_dividend_per_share / safe_float(current_price)) * 100:.2f}%"
+        except:
+            dividend_yield = 'N/A'
+    
+    # Extract 52-week high/low from historical data if not available
+    week_52_high = metadata.get('52_week_high', 'N/A')
+    week_52_low = metadata.get('52_week_low', 'N/A')
+    if (week_52_high == 'N/A' or week_52_low == 'N/A') and historical:
+        try:
+            highs = [safe_float(day.get('high', 0)) for day in historical]
+            lows = [safe_float(day.get('low', 0)) for day in historical if safe_float(day.get('low', 0)) > 0]
+            if highs and week_52_high == 'N/A':
+                week_52_high = f"{max(highs):.2f}"
+            if lows and week_52_low == 'N/A':
+                week_52_low = f"{min(lows):.2f}"
+        except:
+            pass
+    
+    # Get latest technical indicators
+    latest_sma = list(sma_data.values())[0].get('SMA', 'N/A') if sma_data else 'N/A'
+    latest_ema = list(ema_data.values())[0].get('EMA', 'N/A') if ema_data else 'N/A'
+    
+    # Calculate simple moving average from historical data if technical indicators are missing
+    if latest_sma == 'N/A' and len(recent_prices) >= 5:
+        try:
+            closes = [safe_float(day.get('close', 0)) for day in recent_prices]
+            latest_sma = f"{sum(closes) / len(closes):.2f}"
+        except:
+            latest_sma = 'N/A'
     
     analysis = f"""
-    Goal: Conduct a concise financial analysis of {stock_data.get('metadata', {}).get('symbol', 'UNKNOWN')} based on recent market trends, historical data, and technical indicators.
+    Goal: Conduct a comprehensive financial analysis of {metadata.get('ticker', 'UNKNOWN').upper()} ({metadata.get('about_' + metadata.get('ticker', '').lower(), 'AstraZeneca PLC')}) based on recent market trends, historical data, and technical indicators.
 
+    COMPANY OVERVIEW:
+    - Ticker: {metadata.get('ticker', 'N/A').upper()}
+    - Industry: {metadata.get('industry', 'Pharmaceutical') if metadata.get('industry', 'N/A') != 'N/A' else 'Pharmaceutical (AstraZeneca)'}
+    - Market Cap: ${safe_float(market_cap)/1e9:.1f}B
+    - Current Price: ${current_price}
+    - 52-Week Range: ${week_52_low} - ${week_52_high}
+    
+    PRICE DATA & TECHNICAL ANALYSIS:
+    - Current Price: ${current_price}
+    - Recent 5-Day Performance: {', '.join([f"${day.get('close', 'N/A')}" for day in recent_prices[:5]])}
+    - Price Trend: {'Declining' if len(recent_prices) >= 2 and safe_float(recent_prices[0].get('close', 0)) < safe_float(recent_prices[1].get('close', 0)) else 'Rising' if len(recent_prices) >= 2 else 'Stable'}
+    - Trading Volume: {f"Avg {sum([safe_float(day.get('volume', 0)) for day in recent_prices[:5]]) / len(recent_prices) / 1e6:.1f}M shares" if recent_prices else 'N/A'}
+    - Simple Moving Average (5-day): ${latest_sma}
+    - Exponential Moving Average (EMA): ${latest_ema}
+    - Price vs SMA: {'Above' if latest_sma != 'N/A' and safe_float(current_price) > safe_float(latest_sma) else 'Below' if latest_sma != 'N/A' else 'N/A'}
+    - Price vs EMA: {'Above' if latest_ema != 'N/A' and safe_float(current_price) > safe_float(latest_ema) else 'Below' if latest_ema != 'N/A' else 'N/A'}
+    
+    FINANCIAL METRICS (Latest Annual):
+    - Total Revenue: ${safe_float(latest_income.get('totalRevenue', 0))/1e9:.1f}B
+    - Net Income: ${safe_float(latest_income.get('netIncome', 0))/1e9:.1f}B
+    - Operating Cash Flow: ${safe_float(latest_cashflow.get('operatingCashflow', 0))/1e9:.1f}B
+    - Total Assets: ${safe_float(latest_balance.get('totalAssets', 0))/1e9:.1f}B
+    - Total Debt: ${safe_float(latest_balance.get('shortLongTermDebtTotal', 0))/1e9:.1f}B
+    - Dividend Payout: ${safe_float(latest_cashflow.get('dividendPayout', 0))/1e9:.1f}B
+    - P/E Ratio: {pe_ratio}
+    - EPS: ${eps}
+    - Dividend Yield: {dividend_yield if dividend_yield != 'N/A' else f"{safe_float(metadata.get('dividend_yield', 0))*100:.2f}%" if metadata.get('dividend_yield', 'N/A') != 'N/A' else 'N/A'}
+    - Beta: {metadata.get('beta', 'N/A')}
+    - Profit Margin: {(safe_float(latest_income.get('netIncome', 0)) / safe_float(latest_income.get('totalRevenue', 1)) * 100):.1f}%
+    - ROE (Return on Equity): {(safe_float(latest_income.get('netIncome', 0)) / safe_float(latest_balance.get('totalShareholderEquity', 1)) * 100):.1f}%
+    
+    MARKET SENTIMENT & NEWS:
+    """
+    
+    # Add news sentiment analysis
+    if news:
+        analysis += f"Recent News Articles: {len(news)} articles analyzed\n"
+        for article in news[:3]:  # Top 3 articles
+            analysis += f"- {article.get('title', 'N/A')}: {article.get('sentimentLabel', 'N/A')} (Score: {article.get('sentimentScore', 'N/A')})\n"
+    else:
+        analysis += "No recent news data available\n"
+    
+    analysis += f"""
+    - Analyst Price Target: ${metadata.get('price_targets', 'N/A')}
+    - Analyst Ratings: {metadata.get('analyst_ratings', 'N/A')}
+    
+    RISK FACTORS:
+    - Beta (Volatility vs Market): {metadata.get('beta', 'N/A')} ({('Low' if safe_float(metadata.get('beta', 1)) < 0.5 else 'Moderate' if safe_float(metadata.get('beta', 1)) < 1.5 else 'High') if metadata.get('beta', 'N/A') != 'N/A' else 'Unknown'} volatility)
+    - Debt-to-Assets Ratio: {(safe_float(latest_balance.get('shortLongTermDebtTotal', 0))/safe_float(latest_balance.get('totalAssets', 1))*100) if safe_float(latest_balance.get('totalAssets', 0)) > 0 else 0:.1f}%
+    - Debt-to-Equity Ratio: {(safe_float(latest_balance.get('shortLongTermDebtTotal', 0))/safe_float(latest_balance.get('totalShareholderEquity', 1))*100) if safe_float(latest_balance.get('totalShareholderEquity', 0)) > 0 else 0:.1f}%
+    - Current Market Position: {(safe_float(current_price)/safe_float(week_52_high)*100) if safe_float(week_52_high) > 0 else 0:.1f}% of 52-week high
+    - Cash Flow Health: {'Strong' if safe_float(latest_cashflow.get('operatingCashflow', 0)) > 0 else 'Weak'} (${safe_float(latest_cashflow.get('operatingCashflow', 0))/1e9:.1f}B operating cash flow)
+    
+    TECHNICAL INDICATORS ANALYSIS:
+    - EMA vs SMA Trend: {'Bullish' if latest_ema != 'N/A' and latest_sma != 'N/A' and safe_float(latest_ema) > safe_float(latest_sma) else 'Bearish' if latest_ema != 'N/A' and latest_sma != 'N/A' else 'Unable to determine'}
+    - Price Momentum: {'Positive' if latest_sma != 'N/A' and safe_float(current_price) > safe_float(latest_sma) else 'Negative' if latest_sma != 'N/A' else 'Mixed'}
+    - Volume Analysis: {'High activity' if recent_prices and safe_float(recent_prices[0].get('volume', 0)) > 10e6 else 'Moderate activity' if recent_prices else 'N/A'}
+    - Price Volatility: {'High' if recent_prices and len(recent_prices) >= 3 and (max([safe_float(d.get('high', 0)) for d in recent_prices[:3]]) - min([safe_float(d.get('low', 0)) for d in recent_prices[:3]])) / safe_float(current_price) > 0.05 else 'Moderate' if recent_prices else 'N/A'}
+    
     Return Format:
-        - Summary: A brief overview of the stock's current trend.
-        - Key Financial Indicators: Price movements, moving averages (SMA/EMA).
-        - Market Sentiment: A summary of recent news and sentiment trends.
-        - Risk Factors: Highlight any volatility, earnings reports, or macroeconomic risks.
+        - Summary: A brief overview of the stock's current trend and financial health.
+        - Key Financial Indicators: Price movements, moving averages (SMA/EMA), financial ratios.
+        - Market Sentiment: A summary of recent news and analyst sentiment trends.
+        - Risk Factors: Highlight volatility, debt levels, and market position risks.
 
     Warnings:
         - Do not provide direct financial advice.
         - Ensure the response is fact-based and avoids speculation.
         - Keep the response concise, focusing on actionable insights without exceeding 2000 words.
-
-    Context:
-        - Stock Data: {stock_data}
-        - Technical Indicators: Provide insights based on available technical data.
-        - Sentiment Analysis: Summarize the sentiment around recent news articles.
-        - Macroeconomic Trends: Highlight broader economic influences impacting this stock.
     """
-
-    for section in sections:
-        data = stock_data.get(section.lower().replace(" ", "_"), "No data available")
-        analysis += f"\n{section}: {data}"
     
-    analysis += "\nThis is a preliminary Artificial Intelligence (AI) analysis. Please consult a financial advisor for investment decisions."
+    analysis += "\n\nThis is a preliminary Artificial Intelligence (AI) analysis. Please consult a financial advisor for investment decisions."
     return analysis
 
 

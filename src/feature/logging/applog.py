@@ -1,0 +1,65 @@
+from typing import List
+
+from src.feature.logging.logging_interface import LoggingService
+
+
+class AppLogger:
+    """Application logger with dependency injection"""
+    
+    def __init__(self, name: str, services: List[LoggingService]):
+        """
+        Initialize the logger with a name and logging services.
+        
+        Args:
+            name: Logger name (typically module or class name)
+            services: List of logging services (injected dependency)
+        """
+        self.name = name
+        self.services = services
+    
+    def _log(self, level: str, message: str, **kwargs) -> None:
+        """Internal method to log to all services"""
+        for service in self.services:
+            try:
+                service.log(level, message, **kwargs)
+            except Exception:
+                # Fail silently to avoid breaking the application
+                pass
+    
+    def debug(self, message: str, **kwargs) -> None:
+        """Log a debug message"""
+        self._log("DEBUG", message, **kwargs)
+    
+    def info(self, message: str, **kwargs) -> None:
+        """Log an info message"""
+        self._log("INFO", message, **kwargs)
+    
+    def warning(self, message: str, **kwargs) -> None:
+        """Log a warning message"""
+        self._log("WARNING", message, **kwargs)
+    
+    def error(self, message: str, **kwargs) -> None:
+        """Log an error message"""
+        self._log("ERROR", message, **kwargs)
+    
+    def critical(self, message: str, **kwargs) -> None:
+        """Log a critical message"""
+        self._log("CRITICAL", message, **kwargs)
+    
+    def add_service(self, service: LoggingService) -> None:
+        """Add a new logging service"""
+        self.services.append(service)
+    
+    def remove_service(self, service: LoggingService) -> None:
+        """Remove a logging service"""
+        if service in self.services:
+            self.services.remove(service)
+    
+    def close(self) -> None:
+        """Close all logging services"""
+        for service in self.services:
+            try:
+                service.close()
+            except Exception:
+                # Fail silently
+                pass

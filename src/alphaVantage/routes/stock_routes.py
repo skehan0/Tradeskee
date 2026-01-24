@@ -18,8 +18,10 @@ from src.LLM.LLM_service import fetch_and_analyze_all_stock_data, process_questi
 from src.mongoDB.database import database
 from pydantic import BaseModel
 from src.alphaVantage.test.mock_live_news import mock_news_data
+from src.feature.logging import build_app_logger, StdoutLoggingService
 
 router = APIRouter()
+logger = build_app_logger(handlers=[StdoutLoggingService()])
 
 # Request model for the Ask Question endpoint
 class QuestionRequest(BaseModel):
@@ -32,23 +34,28 @@ async def analyze_all_stock_data(ticker: str):
     """
     Endpoint to fetch all stock data, analyze it (stage 1), send it to the LLM to analyze (stage 2)
     """
+    logger.info("Stock analysis requested", ticker=ticker, endpoint="analyze_all")
     try:
         # Call the service function to fetch, analyze, and send data to the LLM
         result = await fetch_and_analyze_all_stock_data(ticker)
-
+        logger.info("Stock analysis completed", ticker=ticker)
         # Return the result
         return result
     except ValueError as e:
+        logger.error("Stock analysis failed - not found", ticker=ticker, error=str(e))
         raise HTTPException(status_code=404, detail=str(e))
     except RuntimeError as e:
+        logger.error("Stock analysis failed - runtime error", ticker=ticker, error=str(e))
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/metadata/{ticker}")
 async def get_stock_metadata(ticker: str):
+    logger.debug("Stock metadata requested", ticker=ticker)
     return await fetch_stock_metadata(ticker)
 
 @router.get("/historical/{ticker}")
 async def get_historical_data(ticker: str):
+    logger.debug("Historical data requested", ticker=ticker)
     return await fetch_historical_data(ticker)
 
 @router.get("/news/{ticker}")
@@ -89,10 +96,13 @@ async def get_earnings(ticker: str, limit: int = Query(5, description="Number of
 
 @router.get("/live-market-prices")
 async def get_live_market_prices():
+    logger.info("Live market prices requested")
     try:
         data = await fetch_live_market_prices()
+        logger.debug("Live market prices fetched successfully")
         return data
     except Exception as e:
+        logger.error("Failed to fetch live market prices", error=str(e))
         raise HTTPException(status_code=500, detail=str(e))
 
 # Financial Indicator

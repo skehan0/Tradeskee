@@ -1,8 +1,12 @@
 import os
 from motor.motor_asyncio import AsyncIOMotorClient
 from dotenv import load_dotenv
+from src.feature.logging import build_app_logger, StdoutLoggingService
 
 load_dotenv()
+
+# Initialize logger
+logger = build_app_logger(handlers=[StdoutLoggingService()])
 
 DATABASE_NAME = "tradely"
 COLLECTION_NAMES = {'historical_data', 'stock_metadata'}
@@ -17,20 +21,25 @@ class DatabaseManager:
         if self.client is None:
             MONGO_URI = os.getenv("MONGO_URI")
             if not MONGO_URI:
+                logger.error("MongoDB connection failed: MONGO_URI not set")
                 raise ValueError("MONGO_URI environment variable is not set.")
 
             try:
+                logger.info("Connecting to MongoDB", database=DATABASE_NAME)
                 print("Connecting to MongoDB...")
                 self.client = AsyncIOMotorClient(MONGO_URI)
                 self.db = self.client[DATABASE_NAME]
+                logger.info("MongoDB connection established", database=DATABASE_NAME)
                 print("Successfully connected to MongoDB!")
             except Exception as e:
+                logger.error("MongoDB connection failed", error=str(e))
                 print(f"Error connecting to MongoDB: {e}")
                 raise e
 
     async def disconnect(self):
         """Close the database connection."""
         if self.client:
+            logger.info("Closing MongoDB connection", database=DATABASE_NAME)
             self.client.close()
             self.client = None
             self.db = None

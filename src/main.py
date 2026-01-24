@@ -9,11 +9,25 @@ try:
 except ModuleNotFoundError:
     from src.alphaVantage.routes import stock_routes
 from contextlib import asynccontextmanager
-from logging import info
+from src.feature.logging import build_app_logger, StdoutLoggingService
 
 load_dotenv()
 
-app = FastAPI()
+# Initialize application logger
+logger = build_app_logger(handlers=[StdoutLoggingService()])
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application lifespan events"""
+    # Startup
+    environment = os.getenv("ENV", "development")
+    logger.info("Application starting", environment=environment)
+    yield
+    # Shutdown
+    logger.info("Application shutting down")
+    logger.close()
+
+app = FastAPI(lifespan=lifespan)
 
 # Configure CORS
 origins = [
@@ -34,10 +48,12 @@ app.include_router(stock_routes.router)
 
 @app.get("/")
 async def root():
+    logger.info("Root endpoint accessed")
     return {"message": "Welcome to the Stock API"}
 
 @app.get("/health")
 async def health_check():
+    logger.debug("Health check requested")
     return {"status": "healthy"}
 
 if __name__ == "__main__":

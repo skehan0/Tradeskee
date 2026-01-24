@@ -10,9 +10,13 @@ import httpx
 from motor.motor_asyncio import AsyncIOMotorClient
 from src.utils.streaming_utils import process_streaming_response
 from src.utils.validate_stock_data_utils import validate_stock_data
+from src.feature.logging import build_app_logger, StdoutLoggingService
 
 # Load environment variables from .env file
 load_dotenv()
+
+# Initialize logger
+logger = build_app_logger(handlers=[StdoutLoggingService()])
 
 # MongoDB setup
 client = AsyncIOMotorClient(os.getenv("MONGODB_URI"))
@@ -209,11 +213,13 @@ async def send_prompt_to_llm(prompt: str, model="gemma3:4b") -> str:
         "messages": [{"role": "user", "content": prompt}]
     }
 
+    logger.info("Sending prompt to LLM", model=model, url=url)
     try:
         async with httpx.AsyncClient() as client:
             response = await client.post(url, json=payload, timeout=1000.0)
 
             if response.status_code == 200:
+                logger.info("LLM response received successfully", model=model)
                 llm_response = ""
                 async for content in process_streaming_response(response):
                     # Print each chunk as it arrives
@@ -221,11 +227,14 @@ async def send_prompt_to_llm(prompt: str, model="gemma3:4b") -> str:
                     llm_response += content
                 return llm_response
             else:
+                logger.error("LLM request failed", status_code=response.status_code, model=model)
                 raise RuntimeError(
                     f"Error {response.status_code}: {response.text}")
     except httpx.RequestError as e:
+        logger.error("HTTP request to LLM failed", error=str(e), model=model)
         raise RuntimeError(f"HTTP request failed: {str(e)}")
     except Exception as e:
+        logger.error("Failed to send prompt to LLM", error=str(e), model=model)
         raise RuntimeError(f"Failed to send prompt to LLM: {str(e)}")
 
 
@@ -332,10 +341,12 @@ def store_analysis(symbol, analysis):
 
 async def fetch_and_analyze_all_stock_data(ticker: str):
     try:
+        logger.info("Starting stock analysis", ticker=ticker)
         print(f"Debug: Fetching and analyzing stock data for ticker: {ticker}")
 
         # Fetch real stock data using the stock services
         stock_data = validate_stock_data(await fetch_all_stock_data(ticker))
+        logger.debug("Stock data fetched", ticker=ticker, has_metadata=bool(stock_data.get("metadata")))
         print("Debug: Fetched stock data:", stock_data)
 
         if not stock_data or "metadata" not in stock_data:

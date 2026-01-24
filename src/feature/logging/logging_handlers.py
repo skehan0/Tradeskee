@@ -20,7 +20,3 @@ class StdoutLoggingService(LoggingService):
         json.dump(log_entry, sys.stdout)
         sys.stdout.write("\n")
         sys.stdout.flush()
-    
-    def close(self) -> None:
-        """No cleanup needed for stdout"""
-        pass

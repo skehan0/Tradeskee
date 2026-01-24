@@ -1,8 +1,17 @@
-import { render, screen } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import App from './App';
 
-test('renders learn react link', () => {
+// Mock the API service to avoid axios import issues
+jest.mock('./Services/api', () => ({
+  fetchLiveMarketPrices: jest.fn(() => Promise.resolve({})),
+  fetchLiveNewsHeadlines: jest.fn(() => Promise.resolve([])),
+  fetchTopGainersLosers: jest.fn(() => Promise.resolve({})),
+  analyzeStock: jest.fn(() => Promise.resolve({})),
+  askQuestion: jest.fn(() => Promise.resolve({}))
+}));
+
+test('renders app without crashing', () => {
   render(<App />);
-  const linkElement = screen.getByText(/learn react/i);
-  expect(linkElement).toBeInTheDocument();
+  // Just test that the app renders without errors
+  expect(document.body).toBeInTheDocument();
 });

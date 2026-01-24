@@ -31,14 +31,28 @@ export const saveAsCSV = (content, filename = 'file.csv') => {
  * @param {string} content - The content to save.
  * @param {string} filename - The name of the file.
  */
-export const saveAsPDF = (content, filename) => {
+export const saveAsPDF = (content, filename = 'file.pdf') => {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
   const margin = 10; // Set a margin
   const maxWidth = pageWidth - margin * 2; // Calculate the maximum width for text
+  const lineHeight = 10; // Line height for text
+  let cursorY = 20; // Initial Y position for text
 
-  // Add wrapped text
-  doc.text(content, margin, 20, { maxWidth: maxWidth });
+  // Split the content into lines that fit within the page width
+  const lines = doc.splitTextToSize(content, maxWidth);
+
+  // Loop through the lines and add them to the PDF
+  lines.forEach((line) => {
+    if (cursorY + lineHeight > pageHeight - margin) {
+      // Add a new page if the current page is full
+      doc.addPage();
+      cursorY = margin; // Reset Y position for the new page
+    }
+    doc.text(line, margin, cursorY);
+    cursorY += lineHeight; // Move to the next line
+  });
 
   // Save the PDF
   doc.save(filename);

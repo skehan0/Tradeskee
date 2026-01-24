@@ -1,0 +1,49 @@
+# Ignore sensitive files
+.env
+.env.*
+*.key
+*.pem
+*.p12
+secrets/
+
+# Ignore development files
+.git
+.gitignore
+README.md
+Dockerfile*
+docker-compose*
+.dockerignore
+node_modules/
+npm-debug.log*
+.nyc_output
+coverage/
+
+# Ignore OS files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Ignore IDE files
+.vscode/
+.idea/
+*.sublime-*
+
+# Ignore Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+.coverage
+.pytest_cache/
+
+# Ignore logs
+logs/
+*.log
+
+# Ignore temporary files
+tmp/
+temp/

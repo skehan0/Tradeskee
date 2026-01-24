@@ -1,6 +1,5 @@
 from typing import List
 
-from src.alphaVantage import services
 from src.feature.logging.logging_interface import LoggingService
 
 

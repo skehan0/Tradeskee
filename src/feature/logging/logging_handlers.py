@@ -8,7 +8,7 @@ from src.feature.logging.logging_interface import LoggingService
 class StdoutLoggingService(LoggingService):
     """Logging service that outputs to stdout"""
 
-    def log(self, level: str, message: str, **kwargs) -> None:
+    def handle(self, level: str, message: str, **kwargs) -> None:
         """Log a message to stdout"""
         log_entry = {
             "timestamp": datetime.now(timezone.utc).isoformat(),

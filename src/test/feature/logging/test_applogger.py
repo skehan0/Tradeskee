@@ -10,7 +10,7 @@ class FakeHandler(LoggingService):
         self.logs = []
         self.closed = False
     
-    def log(self, level: str, message: str, **kwargs) -> None:
+    def handle(self, level: str, message: str, **kwargs) -> None:
         self.logs.append({
             "level": level,
             "message": message,
@@ -28,7 +28,7 @@ class TestAppLogger(unittest.TestCase):
         """Test that logger delegates to injected handler"""
         # Arrange: Create and inject fake handler
         fake_handler = FakeHandler()
-        logger = build_app_logger("test_module", handlers=[fake_handler])
+        logger = build_app_logger(handlers=[fake_handler])
         
         # Act: Log a message
         logger.info("Test message", user_id=123)

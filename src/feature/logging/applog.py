@@ -1,27 +1,27 @@
 from typing import List
 
+from src.alphaVantage import services
 from src.feature.logging.logging_interface import LoggingService
 
 
 class AppLogger:
     """Application logger with dependency injection"""
     
-    def __init__(self, name: str, services: List[LoggingService]):
+    def __init__(self, handlers: List[LoggingService]):
         """
         Initialize the logger with a name and logging services.
         
         Args:
             name: Logger name (typically module or class name)
-            services: List of logging services (injected dependency)
+            handlers: List of logging services (injected dependency)
         """
-        self.name = name
-        self.services = services
+        self.handlers = handlers
     
     def _log(self, level: str, message: str, **kwargs) -> None:
         """Internal method to log to all services"""
-        for service in self.services:
+        for handler in self.handlers:
             try:
-                service.log(level, message, **kwargs)
+                handler.handle(level, message, **kwargs)
             except Exception:
                 # Fail silently to avoid breaking the application
                 pass
@@ -46,20 +46,20 @@ class AppLogger:
         """Log a critical message"""
         self._log("CRITICAL", message, **kwargs)
     
-    def add_service(self, service: LoggingService) -> None:
+    def add_handler(self, handler: LoggingService) -> None:
         """Add a new logging service"""
-        self.services.append(service)
+        self.handlers.append(handler)
     
-    def remove_service(self, service: LoggingService) -> None:
+    def remove_handler(self, handler: LoggingService) -> None:
         """Remove a logging service"""
-        if service in self.services:
-            self.services.remove(service)
+        if handler in self.handlers:
+            self.handlers.remove(handler)
     
     def close(self) -> None:
         """Close all logging services"""
-        for service in self.services:
+        for handler in self.handlers:
             try:
-                service.close()
+                handler.close()
             except Exception:
                 # Fail silently
                 pass

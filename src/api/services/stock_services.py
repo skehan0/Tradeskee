@@ -5,8 +5,8 @@ import os
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
 from alpha_vantage.timeseries import TimeSeries
-from src.alphaVantage.models.stock_models import StockMetadata, StockHistoricalData
-from src.mongoDB.database import database
+from src.api.models.stock_models import StockMetadata, StockHistoricalData
+from src.infrastructure.database.mongoDB.database import database
 from motor.motor_asyncio import AsyncIOMotorClient
 import asyncio
 import logging

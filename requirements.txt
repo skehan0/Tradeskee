@@ -1,38 +1,37 @@
-# Core Framework - Updated to latest secure versions
-fastapi>=0.115.6
-uvicorn[standard]>=0.32.1
+# Core Framework
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
 pydantic==2.6.0
 pydantic-settings==2.1.0
 
-# HTTP Clients - Security updates
-httpx>=0.28.1
-requests>=2.32.3
+# HTTP Clients
+httpx==0.26.0
+requests==2.31.0
 
-# Data Processing - Latest stable
-pandas>=2.2.3
-numpy>=1.26.4
+# Data Processing
+pandas==2.1.4
+numpy==1.26.4
 
-# Database - Security patches
-pymongo>=4.11.1
-motor>=3.7.0
+# Database
+pymongo==4.6.1
+motor==3.3.2
 
 # Configuration
-python-dotenv>=1.0.1
+python-dotenv==1.0.1
 
-# Development Tools
-flake8>=7.3.0
-pytest>=8.3.4
+# Code Quality
+flake8==7.0.0
 
-# AI/ML - Updated versions
-openai>=1.54.4
-langchain>=0.3.14
-ollama>=0.4.7
+# AI/ML
+openai==1.12.0
+langchain==0.1.6
+ollama==0.1.6
 
 # Stock API
-alpha_vantage>=3.0.0
+alpha_vantage==2.3.1
 
-# Utilities - Security update
-cachetools>=5.5.2
+# Utilities
+cachetools==5.3.2
 
 # Authentication & Security
 python-jose[cryptography]==3.3.0
@@ -42,12 +41,11 @@ python-multipart==0.0.6
 # Rate Limiting
 slowapi==0.1.9
 
-# Testing (we'll expand this in Phase 1)
+# Testing
 pytest==7.4.4
 pytest-asyncio==0.23.3
 pytest-cov==4.1.0
 pytest-mock==3.12.0
-httpx==0.26.0  # For TestClient
 
 # Code Quality
 black==24.1.1

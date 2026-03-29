@@ -4,7 +4,7 @@ from cachetools import TTLCache
 import os
 from dotenv import load_dotenv
 from motor.motor_asyncio import AsyncIOMotorClient
-from src.mongoDB.database import database
+from src.infrastructure.database.mongoDB.database import database
 
 # Load environment variables from .env file
 load_dotenv()
@@ -20,7 +20,7 @@ client = AsyncIOMotorClient(os.getenv("MONGODB_URI"))
 db = client.tradely  # Use the 'tradely' database
 
 # Caches with a TTL of 1 hour and a max size of 100 items
-economic_cache = TTLCache(maxsize=100, ttl=3600)
+crypto_cache = TTLCache(maxsize=100, ttl=3600)
 
 # Helper function for API requests
 async def make_request(url: str):
@@ -32,18 +32,18 @@ async def make_request(url: str):
         raise HTTPException(status_code=response.status_code, detail="Failed to fetch data from Alpha Vantage.")
     return response.json()
 
-# async def fetch_economic_data(indicator: str):
-#     if indicator in economic_cache:
-#         return economic_cache[indicator]
+async def fetch_crypto_data(symbol: str):
+    if symbol in crypto_cache:
+        return crypto_cache[symbol]
     
-#     url = f"https://www.alphavantage.co/query?function={indicator}&apikey={API_KEY}"
-#     data = await make_request(url)
+    url = f"https://www.alphavantage.co/query?function=DIGITAL_CURRENCY_DAILY&symbol={symbol}&market=USD&apikey={API_KEY}"
+    data = await make_request(url)
 
-#     # Store in MongoDB
-#     result = await db.economic_data.insert_one(data)
-#     data["_id"] = str(result.inserted_id)
+    # Store in MongoDB
+    result = await db.crypto_data.insert_one(data)
+    data["_id"] = str(result.inserted_id)
 
-#     # Update cache
-#     economic_cache[indicator] = data
+    # Update cache
+    crypto_cache[symbol] = data
 
-#     return data
+    return data

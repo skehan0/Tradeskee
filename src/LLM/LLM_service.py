@@ -1,5 +1,5 @@
 from fastapi import HTTPException
-from src.alphaVantage.services.stock_services import fetch_all_stock_data
+from src.api.services.stock_services import fetch_all_stock_data
 from pymongo import MongoClient
 from datetime import datetime
 import requests

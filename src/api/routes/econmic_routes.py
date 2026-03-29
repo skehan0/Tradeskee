@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from src.alphaVantage.services.economic_services import fetch_economic_data
+from src.api.services.economic_services import fetch_economic_data
 
 router = APIRouter()
 

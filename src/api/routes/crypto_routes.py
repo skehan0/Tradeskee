@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from src.alphaVantage.services.crypto_services import fetch_crypto_data
+from src.api.services.crypto_services import fetch_crypto_data
 
 router = APIRouter()
 

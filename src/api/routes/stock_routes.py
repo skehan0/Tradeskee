@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Query
-from src.alphaVantage.services.stock_services import (
+from src.api.services.stock_services import (
     fetch_stock_metadata,
     fetch_historical_data,
     fetch_news_headlines,
@@ -15,9 +15,9 @@ from src.alphaVantage.services.stock_services import (
     fetch_top_gainers_losers
 )
 from src.LLM.LLM_service import fetch_and_analyze_all_stock_data, process_question_with_llm
-from src.mongoDB.database import database
+from src.infrastructure.database.mongoDB.database import database
 from pydantic import BaseModel
-from src.alphaVantage.test.mock_live_news import mock_news_data
+# from src.api.test.mock_live_news import mock_news_data  # Removed - not used
 
 router = APIRouter()
 

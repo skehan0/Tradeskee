@@ -1,8 +1,11 @@
-# utils/data_storage.py
-from pymongo import ASCENDING
-from src.mongoDB.database import database
+from typing import Optional
 
-async def check_if_data_exists(collection_name: str, ticker: str, date: str = None):
+from src.infrastructure.database.mongoDB.database import database
+
+
+async def check_if_data_exists(
+    collection_name: str, ticker: str, date: Optional[str] = None
+):
     collection = await database.get_collection(collection_name)
     if date:
         # If you need to check by date (for historical data), include it in the query
@@ -12,8 +15,9 @@ async def check_if_data_exists(collection_name: str, ticker: str, date: str = No
         existing_record = await collection.find_one({"ticker": ticker})
     return existing_record is not None
 
-async def store_data(collection_name: str, data: dict, ticker: str = None):
+
+async def store_data(collection_name: str, data: dict, ticker: Optional[str] = None):
     collection = await database.get_collection(collection_name)
     if ticker:
-        data['ticker'] = ticker
+        data["ticker"] = ticker
     await collection.insert_one(data)

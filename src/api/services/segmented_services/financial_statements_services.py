@@ -22,13 +22,13 @@
 #     cache_key = f"{ticker}_{limit}"
 #     if cache_key in income_statement_cache:
 #         return income_statement_cache[cache_key]
-    
+
 #     # Check if income statement is already stored in the database
 #     existing_income_statement = await db.income_statement.find_one({"ticker": ticker})
 #     if existing_income_statement:
 #         existing_income_statement["_id"] = str(existing_income_statement["_id"])
 #         return existing_income_statement
-    
+
 #     url = f"https://www.alphavantage.co/query?function=INCOME_STATEMENT&symbol={ticker}&apikey={API_KEY}"
 #     data = await make_request(url)
 
@@ -57,13 +57,13 @@
 #     cache_key = f"{ticker}_{limit}"
 #     if cache_key in balance_sheet_cache:
 #         return balance_sheet_cache[cache_key]
-    
+
 #     # Check if balance sheet is already stored in the database
 #     existing_balance_sheet = await db.balance_sheet.find_one({"ticker": ticker})
 #     if existing_balance_sheet:
 #         existing_balance_sheet["_id"] = str(existing_balance_sheet["_id"])
 #         return existing_balance_sheet
-    
+
 #     url = f"https://www.alphavantage.co/query?function=BALANCE_SHEET&symbol={ticker}&apikey={API_KEY}"
 #     data = await make_request(url)
 
@@ -92,16 +92,16 @@
 #     cache_key = f"{ticker}_{limit}"
 #     if cache_key in cash_flow_cache:
 #         return cash_flow_cache[cache_key]
-    
+
 #     url = f"https://www.alphavantage.co/query?function=CASH_FLOW&symbol={ticker}&apikey={API_KEY}"
 #     data = await make_request(url)
-    
+
 #     # Check if cash flow is already stored in the database
 #     existing_cash_flow = await db.cash_flow.find_one({"ticker": ticker})
 #     if existing_cash_flow:
 #         existing_cash_flow["_id"] = str(existing_cash_flow["_id"])
 #         return existing_cash_flow
-    
+
 #     # Process the data to limit the number of cash flows
 #     limited_data = {
 #         "ticker": ticker,
@@ -127,23 +127,23 @@
 #     cache_key = f"{ticker}_{limit}"
 #     if cache_key in earnings_cache:
 #         return earnings_cache[cache_key]
-    
+
 #     # Check if earnings are already stored in the database
 #     existing_earnings = await db.earnings.find_one({"ticker": ticker})
 #     if existing_earnings:
 #         existing_earnings["_id"] = str(existing_earnings["_id"])
 #         return existing_earnings
-    
+
 #     url = f"https://www.alphavantage.co/query?function=EARNINGS&symbol={ticker}&apikey={API_KEY}"
 #     data = await make_request(url)
-    
+
 #     # Process the data to limit the number of earnings
 #     limited_data = {
 #         "ticker": ticker,
 #         "annual_reports": data.get("annualReports", [])[:limit],
 #         # "quarterly_reports": data.get("quarterlyReports", [])[:limit]
 #     }
-    
+
 #     # Store in MongoDB
 #     await db.earnings.update_one(
 #         {"ticker": ticker},

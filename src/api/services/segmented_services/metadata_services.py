@@ -24,7 +24,7 @@
 # async def fetch_stock_metadata(ticker: str):
 #     if ticker in metadata_cache:
 #         return metadata_cache[ticker]
-    
+
 #     url = f"https://www.alphavantage.co/query?function=OVERVIEW&symbol={ticker}&apikey={API_KEY}"
 #     data = await make_request(url)
 

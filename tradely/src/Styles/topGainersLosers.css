@@ -1,249 +1,261 @@
 /* Top Gainers & Losers Section */
 .top-gainers-losers {
-    margin: 60px auto;
-    padding: 40px;
-    border-radius: 20px;
-    background: rgba(30, 30, 47, 0.8);
-    -webkit-backdrop-filter: blur(8px);
-    backdrop-filter: blur(8px);
-    border: 1px solid rgba(0, 209, 255, 0.15);
-    box-shadow: 0 16px 32px rgba(0, 209, 255, 0.1);
-    max-width: 1300px;
-    color: #ffffff;
-    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1);
-    position: relative;
-    overflow: hidden;
-  }
-  
-  .top-gainers-losers::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, #00D1FF, transparent);
-  }
-  
-  .top-gainers-losers:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 20px 40px rgba(0, 209, 255, 0.15);
-  }
-  
-  .top-gainers-losers h2 {
-    text-align: center;
-    margin-bottom: 40px;
-    font-size: 2.2rem;
-    font-weight: 800;
-    background: linear-gradient(45deg, #00D1FF, #007BFF);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    letter-spacing: -0.5px;
-    position: relative;
-    padding-bottom: 15px;
-  }
-  
-  .top-gainers-losers h2::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 35%;
-    width: 30%;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, #00D1FF, transparent);
-  }
-  
-  /* Tables Container */
+  margin: 60px auto;
+  padding: 40px;
+  border-radius: 20px;
+  background: rgba(30, 30, 47, 0.8);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(0, 209, 255, 0.15);
+  box-shadow: 0 16px 32px rgba(0, 209, 255, 0.1);
+  max-width: 1300px;
+  color: #ffffff;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.top-gainers-losers::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #00d1ff, transparent);
+}
+
+.top-gainers-losers:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 20px 40px rgba(0, 209, 255, 0.15);
+}
+
+.top-gainers-losers h2 {
+  text-align: center;
+  margin-bottom: 40px;
+  font-size: 2.2rem;
+  font-weight: 800;
+  background: linear-gradient(45deg, #00d1ff, #007bff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: -0.5px;
+  position: relative;
+  padding-bottom: 15px;
+}
+
+.top-gainers-losers h2::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 35%;
+  width: 30%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #00d1ff, transparent);
+}
+
+/* Tables Container */
+.tables-container {
+  display: flex;
+  justify-content: space-between;
+  gap: 40px;
+  margin-top: 30px;
+}
+
+@media (max-width: 1024px) {
   .tables-container {
-    display: flex;
-    justify-content: space-between;
-    gap: 40px;
-    margin-top: 30px;
+    flex-direction: column;
+    gap: 30px;
   }
-  
-  @media (max-width: 1024px) {
-    .tables-container {
-      flex-direction: column;
-      gap: 30px;
-    }
+}
+
+/* Table Sections */
+.table-section {
+  flex: 1;
+  border-radius: 16px;
+  overflow: hidden;
+  background: rgba(26, 26, 42, 0.6);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
+  border: 1px solid rgba(0, 209, 255, 0.1);
+}
+
+.table-section:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 28px rgba(0, 209, 255, 0.2);
+}
+
+/* Tables */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: "Inter", sans-serif;
+}
+
+table th,
+table td {
+  text-align: center;
+  padding: 12px;
+  border-bottom: 1px solid rgba(0, 209, 255, 0.1);
+}
+
+@media (max-width: 768px) {
+  table th,
+  table td {
+    padding: 10px 6px; /* Further reduce padding for smaller screens */
+    font-size: 0.85rem; /* Smaller font size for mobile */
   }
-  
-  /* Table Sections */
-  .table-section {
-    flex: 1;
-    border-radius: 16px;
-    overflow: hidden;
-    background: rgba(26, 26, 42, 0.6);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-    transition: all 0.3s ease;
-    border: 1px solid rgba(0, 209, 255, 0.1);
+}
+
+@media (max-width: 480px) {
+  table th,
+  table td {
+    padding: 8px 4px; /* Minimal padding for very small screens */
+    font-size: 0.8rem; /* Smallest font size */
   }
-  
-  .table-section:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 12px 28px rgba(0, 209, 255, 0.2);
-  }
-  
-  /* Tables */
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    font-family: 'Inter', sans-serif;
-  }
-  
-  table th, table td {
-    text-align: center;
-    padding: 12px;
-    border-bottom: 1px solid rgba(0, 209, 255, 0.1);
+}
+
+table th {
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  font-size: 0.9rem;
+}
+
+table td {
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+}
+
+/* Gainers Table */
+.gainers-table th {
+  background: linear-gradient(
+    135deg,
+    rgba(40, 167, 69, 0.8),
+    rgba(33, 136, 56, 0.8)
+  );
+  color: white;
+  padding: 16px;
+}
+
+.gainers-table td {
+  color: #4ce68a;
+}
+
+.gainers-table tr:nth-child(even) {
+  background-color: rgba(40, 167, 69, 0.05);
+}
+
+.gainers-table tr:hover {
+  background-color: rgba(40, 167, 69, 0.1);
+  transform: none;
+}
+
+/* Losers Table */
+.losers-table th {
+  background: linear-gradient(
+    135deg,
+    rgba(220, 53, 69, 0.8),
+    rgba(192, 35, 51, 0.8)
+  );
+  color: white;
+  padding: 16px;
+}
+
+.losers-table td {
+  color: #ff6b7d;
+}
+
+.losers-table tr:nth-child(even) {
+  background-color: rgba(220, 53, 69, 0.05);
+}
+
+.losers-table tr:hover {
+  background-color: rgba(220, 53, 69, 0.1);
+  transform: none;
+}
+
+/* Table Row Animation */
+table tr {
+  transition: all 0.3s ease;
+}
+
+table tr:hover {
+  background-color: rgba(0, 209, 255, 0.05);
+}
+
+table tr:hover td {
+  transform: translateX(5px);
+}
+
+/* Stock Input */
+.stock-input-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 30px;
+}
+
+.stock-input {
+  width: 300px;
+  padding: 16px 24px;
+  font-size: 1rem;
+  border: 1px solid rgba(0, 209, 255, 0.3);
+  border-radius: 12px;
+  background: rgba(42, 42, 59, 0.6);
+  color: #f0f8ff;
+  outline: none;
+  transition: all 0.3s ease;
+  text-align: center;
+}
+
+.stock-input::placeholder {
+  color: #6b7985;
+  font-style: italic;
+}
+
+.stock-input:focus {
+  border-color: #00d1ff;
+  box-shadow: 0 0 20px rgba(0, 209, 255, 0.3);
+  background: rgba(42, 42, 59, 0.8);
+  transform: scale(1.02);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .top-gainers-losers {
+    padding: 30px 20px;
+    margin: 40px 15px;
   }
 
-  @media (max-width: 768px) {
-    table th, table td {
-      padding: 10px 6px; /* Further reduce padding for smaller screens */
-      font-size: 0.85rem; /* Smaller font size for mobile */
-    }
-  }
-  
-  @media (max-width: 480px) {
-    table th, table td {
-      padding: 8px 4px; /* Minimal padding for very small screens */
-      font-size: 0.8rem; /* Smallest font size */
-    }
-  }
-  
-  table th {
-    font-weight: 700;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-    font-size: 0.9rem;
-  }
-  
-  table td {
-    font-size: 0.95rem;
-    transition: all 0.2s ease;
-  }
-  
-  /* Gainers Table */
-  .gainers-table th {
-    background: linear-gradient(135deg, rgba(40, 167, 69, 0.8), rgba(33, 136, 56, 0.8));
-    color: white;
-    padding: 16px;
-  }
-  
-  .gainers-table td {
-    color: #4CE68A;
-  }
-  
-  .gainers-table tr:nth-child(even) {
-    background-color: rgba(40, 167, 69, 0.05);
-  }
-  
-  .gainers-table tr:hover {
-    background-color: rgba(40, 167, 69, 0.1);
-    transform: none;
-  }
-  
-  /* Losers Table */
-  .losers-table th {
-    background: linear-gradient(135deg, rgba(220, 53, 69, 0.8), rgba(192, 35, 51, 0.8));
-    color: white;
-    padding: 16px;
-  }
-  
-  .losers-table td {
-    color: #FF6B7D;
-  }
-  
-  .losers-table tr:nth-child(even) {
-    background-color: rgba(220, 53, 69, 0.05);
-  }
-  
-  .losers-table tr:hover {
-    background-color: rgba(220, 53, 69, 0.1);
-    transform: none;
-  }
-  
-  /* Table Row Animation */
-  table tr {
-    transition: all 0.3s ease;
-  }
-  
-  table tr:hover {
-    background-color: rgba(0, 209, 255, 0.05);
-  }
-  
-  table tr:hover td {
-    transform: translateX(5px);
-  }
-  
-  /* Stock Input */
-  .stock-input-container {
-    display: flex;
-    justify-content: center;
+  .top-gainers-losers h2 {
+    font-size: 1.8rem;
     margin-bottom: 30px;
   }
-  
+
+  table th,
+  table td {
+    padding: 12px 8px;
+    font-size: 0.85rem;
+  }
+
   .stock-input {
-    width: 300px;
-    padding: 16px 24px;
-    font-size: 1rem;
-    border: 1px solid rgba(0, 209, 255, 0.3);
-    border-radius: 12px;
-    background: rgba(42, 42, 59, 0.6);
-    color: #f0f8ff;
-    outline: none;
-    transition: all 0.3s ease;
-    text-align: center;
+    width: 100%;
+    max-width: 300px;
   }
-  
-  .stock-input::placeholder {
-    color: #6b7985;
-    font-style: italic;
+}
+
+@media (max-width: 480px) {
+  .top-gainers-losers h2 {
+    font-size: 1.5rem;
   }
-  
-  .stock-input:focus {
-    border-color: #00D1FF;
-    box-shadow: 0 0 20px rgba(0, 209, 255, 0.3);
-    background: rgba(42, 42, 59, 0.8);
-    transform: scale(1.02);
+
+  table th {
+    font-size: 0.75rem;
+    padding: 12px 5px;
   }
-  
-  /* Responsive Design */
-  @media (max-width: 768px) {
-    .top-gainers-losers {
-      padding: 30px 20px;
-      margin: 40px 15px;
-    }
-    
-    .top-gainers-losers h2 {
-      font-size: 1.8rem;
-      margin-bottom: 30px;
-    }
-    
-    table th, table td {
-      padding: 12px 8px;
-      font-size: 0.85rem;
-    }
-    
-    .stock-input {
-      width: 100%;
-      max-width: 300px;
-    }
+
+  table td {
+    font-size: 0.8rem;
+    padding: 10px 5px;
   }
-  
-  @media (max-width: 480px) {
-    .top-gainers-losers h2 {
-      font-size: 1.5rem;
-    }
-    
-    table th {
-      font-size: 0.75rem;
-      padding: 12px 5px;
-    }
-    
-    table td {
-      font-size: 0.8rem;
-      padding: 10px 5px;
-    }
-  }
+}

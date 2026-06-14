@@ -85,14 +85,14 @@
 #     cache_key = f"{ticker}_{limit}"
 #     if cache_key in sma_cache:
 #         return sma_cache[cache_key]
-    
+
 #     url = f"https://www.alphavantage.co/query?function=SMA&symbol={ticker}&interval={interval}&time_period={time_period}&series_type={series_type}&apikey={API_KEY}"
 #     data = await make_request(url)
 #     sma_data = data.get("Technical Analysis: SMA", {})
-    
+
 #     # Limit the data to the last 'limit' entries
 #     limited_sma_data = dict(list(sma_data.items())[:limit])
-    
+
 #     # Cache the result
 #     sma_cache[cache_key] = limited_sma_data
 
@@ -102,14 +102,14 @@
 #     cache_key = f"{ticker}_{limit}"
 #     if cache_key in ema_cache:
 #         return ema_cache[cache_key]
-    
+
 #     url = f"https://www.alphavantage.co/query?function=EMA&symbol={ticker}&interval={interval}&time_period={time_period}&series_type={series_type}&apikey={API_KEY}"
 #     data = await make_request(url)
 #     ema_data = data.get("Technical Analysis: EMA", {})
-    
+
 #     # Limit the data to the last 'limit' entries
 #     limited_ema_data = dict(list(ema_data.items())[:limit])
-    
+
 #     # Cache the result
 #     ema_cache[cache_key] = limited_ema_data
 

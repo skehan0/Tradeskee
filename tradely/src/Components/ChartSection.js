@@ -1,6 +1,6 @@
-import React from 'react';
-import TradingViewChart from './TradingViewChart';
-import '../Styles/chartSection.css';
+import React from "react";
+import TradingViewChart from "./TradingViewChart";
+import "../Styles/chartSection.css";
 
 const ChartSection = ({ ticker, isLoading, analysis }) => {
   // Only render the chart if analysis is complete and not loading

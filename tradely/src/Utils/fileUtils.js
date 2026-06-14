@@ -1,13 +1,13 @@
-import jsPDF from 'jspdf';
+import jsPDF from "jspdf";
 
 /**
  * Save content as a TXT file.
  * @param {string} content - The content to save.
  * @param {string} filename - The name of the file.
  */
-export const saveAsTXT = (content, filename = 'file.txt') => {
-  const blob = new Blob([content], { type: 'text/plain' });
-  const link = document.createElement('a');
+export const saveAsTXT = (content, filename = "file.txt") => {
+  const blob = new Blob([content], { type: "text/plain" });
+  const link = document.createElement("a");
   link.href = URL.createObjectURL(blob);
   link.download = filename;
   link.click();
@@ -18,9 +18,9 @@ export const saveAsTXT = (content, filename = 'file.txt') => {
  * @param {string} content - The content to save.
  * @param {string} filename - The name of the file.
  */
-export const saveAsCSV = (content, filename = 'file.csv') => {
+export const saveAsCSV = (content, filename = "file.csv") => {
   const csvContent = `data:text/csv;charset=utf-8,${encodeURIComponent(content)}`;
-  const link = document.createElement('a');
+  const link = document.createElement("a");
   link.href = csvContent;
   link.download = filename;
   link.click();
@@ -31,7 +31,7 @@ export const saveAsCSV = (content, filename = 'file.csv') => {
  * @param {string} content - The content to save.
  * @param {string} filename - The name of the file.
  */
-export const saveAsPDF = (content, filename = 'file.pdf') => {
+export const saveAsPDF = (content, filename = "file.pdf") => {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
@@ -63,10 +63,10 @@ export const saveAsPDF = (content, filename = 'file.pdf') => {
  * @param {Object} content - The content to save.
  * @param {string} filename - The name of the file.
  */
-export const saveAsJSON = (content, filename = 'file.json') => {
+export const saveAsJSON = (content, filename = "file.json") => {
   const jsonContent = JSON.stringify(content, null, 2); // Pretty-print JSON
-  const blob = new Blob([jsonContent], { type: 'application/json' });
-  const link = document.createElement('a');
+  const blob = new Blob([jsonContent], { type: "application/json" });
+  const link = document.createElement("a");
   link.href = URL.createObjectURL(blob);
   link.download = filename;
   link.click();

@@ -19,7 +19,7 @@
   margin: 0;
   font-size: 1.8rem;
   font-weight: 800;
-  background: linear-gradient(45deg, #00D1FF, #007BFF);
+  background: linear-gradient(45deg, #00d1ff, #007bff);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -51,13 +51,13 @@
 }
 
 .header nav ul li a::before {
-  content: '';
+  content: "";
   position: absolute;
   bottom: 0;
   left: 0;
   width: 0;
   height: 2px;
-  background: linear-gradient(90deg, #00D1FF, #007BFF);
+  background: linear-gradient(90deg, #00d1ff, #007bff);
   transition: width 0.3s ease;
 }
 
@@ -113,12 +113,12 @@
 
 .dropdown li a:hover {
   background: linear-gradient(90deg, rgba(0, 123, 255, 0.2), transparent);
-  color: #00D1FF;
+  color: #00d1ff;
   padding-left: 25px;
 }
 
 .dropdown li:not(:last-child)::after {
-  content: '';
+  content: "";
   position: absolute;
   bottom: 0;
   left: 20px;
@@ -138,7 +138,7 @@
   display: block;
   width: 25px;
   height: 3px;
-  background: #00D1FF;
+  background: #00d1ff;
   margin: 5px 0;
   transition: all 0.3s ease;
 }
@@ -150,22 +150,22 @@
     flex-direction: column;
     align-items: flex-start;
   }
-  
+
   .header nav {
     width: 100%;
     margin-top: 15px;
     display: none;
   }
-  
+
   .header nav.active {
     display: block;
   }
-  
+
   .header nav ul {
     flex-direction: column;
     gap: 10px;
   }
-  
+
   .dropdown {
     position: static;
     opacity: 1;
@@ -176,26 +176,26 @@
     margin-top: 5px;
     display: none;
   }
-  
+
   .header nav ul li:hover .dropdown {
     display: block;
   }
-  
+
   .menu-toggle {
     display: block;
     position: absolute;
     right: 20px;
     top: 15px;
   }
-  
+
   .menu-toggle.active span:nth-child(1) {
     transform: rotate(45deg) translate(5px, 5px);
   }
-  
+
   .menu-toggle.active span:nth-child(2) {
     opacity: 0;
   }
-  
+
   .menu-toggle.active span:nth-child(3) {
     transform: rotate(-45deg) translate(5px, -5px);
   }
@@ -205,7 +205,7 @@
   .header {
     padding: 12px 20px;
   }
-  
+
   .header h1 {
     font-size: 1.5rem;
   }

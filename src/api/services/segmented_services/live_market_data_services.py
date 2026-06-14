@@ -21,22 +21,22 @@
 # async def fetch_live_market_prices():
 #     global market_data_cache
 #     current_time = time.time()
-    
+
 #     # Refresh market data every 60 minutes
 #     if current_time - market_data_cache["last_updated"] < 3600:
 #         print("Returning cached market data")
 #         return market_data_cache["data"]
-    
+
 #     symbols = ["AAPL", "AMZN", "TSLA", "MSFT", "GOOG", "NVDA"]
 #     interval = "daily"
-    
+
 #     market_data = {}
 
 #     for symbol in symbols:
 #         try:
 #             url = f"https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol={symbol}&apikey={API_KEY}"
 #             data = await make_request(url)
-            
+
 #             # Check if API returned an error
 #             if "Error Message" in data or not data:
 #                 print(f"API Error for {symbol}: {data.get('Error Message', 'Unknown error')}")
@@ -92,12 +92,12 @@
 #     cache_key = f"top_gainers_losers_{limit}"
 #     if cache_key in top_gainers_losers_cache:
 #         return top_gainers_losers_cache[cache_key]
-    
+
 #     try:
 #         # Corrected URL without the 'symbol' parameter
 #         url = f"https://www.alphavantage.co/query?function=TOP_GAINERS_LOSERS&apikey={API_KEY}"
 #         data = await make_request(url)
-        
+
 #         # Check if API returned a valid response
 #         gainers = data.get("top_gainers", [])[:limit]  # Use an empty list as fallback
 #         losers = data.get("top_losers", [])[:limit]    # Use an empty list as fallback
@@ -114,7 +114,7 @@
 #                 }
 #                 for i in range(limit)
 #             ]
-        
+
 #         if not losers:
 #             losers = [
 #                 {

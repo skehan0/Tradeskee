@@ -1,16 +1,18 @@
-import requests
-from fastapi import HTTPException
-from cachetools import TTLCache
-import os
-from dotenv import load_dotenv
-from datetime import datetime, timedelta
-from alpha_vantage.timeseries import TimeSeries
-from src.api.models.stock_models import StockMetadata, StockHistoricalData
-from src.infrastructure.database.mongoDB.database import database
-from motor.motor_asyncio import AsyncIOMotorClient
 import asyncio
 import logging
+import os
 import time
+from datetime import datetime, timedelta
+
+import requests
+from alpha_vantage.timeseries import TimeSeries
+from cachetools import TTLCache
+from dotenv import load_dotenv
+from fastapi import HTTPException
+from motor.motor_asyncio import AsyncIOMotorClient
+
+from src.api.models.stock_models import StockHistoricalData, StockMetadata
+from src.infrastructure.database.mongoDB.database import database
 
 # Load environment variables from .env file
 load_dotenv()
@@ -23,7 +25,7 @@ if not API_KEY and not TESTING:
     raise ValueError("Alpha Vantage API key is not set in environment variables.")
 
 # MongoDB setup
-client = AsyncIOMotorClient(os.getenv("MONGODB_URI"))
+client: AsyncIOMotorClient = AsyncIOMotorClient(os.getenv("MONGODB_URI"))
 db = client.tradely
 
 # Caches with a TTL of 1 hour and a max size of 100 items
@@ -43,6 +45,7 @@ market_data_cache = {"data": {}, "last_updated": 0}
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
 # Helper function for API requests with retries
 async def make_request(url: str, retries: int = 3, backoff_factor: float = 0.5):
     """
@@ -56,13 +59,21 @@ async def make_request(url: str, retries: int = 3, backoff_factor: float = 0.5):
         response = requests.get(url)
         if response.status_code == 429:
             if attempt < retries - 1:
-                await asyncio.sleep(backoff_factor * (2 ** attempt))
+                await asyncio.sleep(backoff_factor * (2**attempt))
                 continue
-            raise HTTPException(status_code=429, detail="Rate limit exceeded. Please try again later.")
+            raise HTTPException(
+                status_code=429, detail="Rate limit exceeded. Please try again later."
+            )
         if response.status_code != 200:
-            raise HTTPException(status_code=response.status_code, detail="Failed to fetch data from Alpha Vantage.")
+            raise HTTPException(
+                status_code=response.status_code,
+                detail="Failed to fetch data from Alpha Vantage.",
+            )
         return response.json()
-    raise HTTPException(status_code=500, detail="Failed to fetch data after multiple attempts.")
+    raise HTTPException(
+        status_code=500, detail="Failed to fetch data after multiple attempts."
+    )
+
 
 async def fetch_all_stock_data(ticker: str):
     """
@@ -74,13 +85,13 @@ async def fetch_all_stock_data(ticker: str):
 
         # Step 2: Fetch historical data
         historical_data = await fetch_historical_data(ticker)
-        
+
         # Step 3: Fetch news headlines
         news = await fetch_news_headlines(ticker)
-        
+
         # Step 4: Fetch income statement
         income_statement = await fetch_income_statement(ticker)
-        
+
         # Step 5: Fetch balance sheet
         balance_sheet = await fetch_balance_sheet(ticker)
 
@@ -116,7 +127,9 @@ async def fetch_all_stock_data(ticker: str):
 
     except Exception as e:
         logger.error(f"Failed to fetch all stock data for {ticker}: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to fetch all stock data: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to fetch all stock data: {str(e)}"
+        )
 
 
 # Specific Data Calls
@@ -126,7 +139,7 @@ async def fetch_stock_metadata(ticker: str):
     """
     if ticker in metadata_cache:
         return metadata_cache[ticker]
-    
+
     url = f"https://www.alphavantage.co/query?function=OVERVIEW&symbol={ticker}&apikey={API_KEY}"
     data = await make_request(url)
 
@@ -145,14 +158,12 @@ async def fetch_stock_metadata(ticker: str):
         "price_targets": data.get("AnalystTargetPrice", "N/A"),
         "events": data.get("QuarterlyEarningsGrowthYOY", "N/A"),
         f"about_{ticker}": data.get("Description", "N/A"),
-        "last_updated": datetime.utcnow()
+        "last_updated": datetime.utcnow(),
     }
 
     # Store in MongoDB (overwrite existing data)
     await db.stock_metadata.update_one(
-        {"ticker": ticker},
-        {"$set": metadata},
-        upsert=True
+        {"ticker": ticker}, {"$set": metadata}, upsert=True
     )
     logger.info(f"Stored metadata for {ticker} in database")
 
@@ -160,6 +171,7 @@ async def fetch_stock_metadata(ticker: str):
     metadata_cache[ticker] = metadata
 
     return metadata
+
 
 async def fetch_historical_data(ticker: str, limit: int = 5):
     """
@@ -180,7 +192,7 @@ async def fetch_historical_data(ticker: str, limit: int = 5):
         return existing_data
 
     try:
-        ts = TimeSeries(key=os.getenv("ALPHA_VANTAGE_API_KEY"), output_format='json')
+        ts = TimeSeries(key=os.getenv("ALPHA_VANTAGE_API_KEY"), output_format="json")
         data, _ = ts.get_weekly_adjusted(ticker)
 
         # Extract relevant details and limit the number of entries
@@ -193,22 +205,22 @@ async def fetch_historical_data(ticker: str, limit: int = 5):
                 "close": values["4. close"],
                 "adjusted_close": values["5. adjusted close"],
                 "volume": values["6. volume"],
-                "dividend_amount": values["7. dividend amount"]
+                "dividend_amount": values["7. dividend amount"],
             }
             for date, values in data.items()
-        ][:limit]  # Apply the limit here
+        ][
+            :limit
+        ]  # Apply the limit here
 
         historical_data = {
             "ticker": ticker,
             "historical_data": cleaned_data,
-            "last_updated": datetime.utcnow()
+            "last_updated": datetime.utcnow(),
         }
 
         # Store in MongoDB
         await db.historical_data.update_one(
-            {"ticker": ticker},
-            {"$set": historical_data},
-            upsert=True
+            {"ticker": ticker}, {"$set": historical_data}, upsert=True
         )
         logger.info(f"Stored historical data for {ticker} in database")
 
@@ -219,7 +231,10 @@ async def fetch_historical_data(ticker: str, limit: int = 5):
 
     except Exception as e:
         logger.error(f"Failed to fetch historical data for {ticker}: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to fetch historical data: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to fetch historical data: {str(e)}"
+        )
+
 
 # Fetch news headlines
 async def fetch_news_headlines(ticker: str, limit: int = 3):
@@ -253,7 +268,8 @@ async def fetch_news_headlines(ticker: str, limit: int = 3):
     # Cache the result
     news_cache[cache_key] = cleaned_news
     return cleaned_news
-    
+
+
 # Fetch fetchLiveNewsHeadlines
 async def fetch_live_news_headlines(limit: int = 3):
     """
@@ -285,18 +301,19 @@ async def fetch_live_news_headlines(limit: int = 3):
     news_cache[cache_key] = result
     return result
 
+
 # Fetch Income Statement
 async def fetch_income_statement(ticker: str, limit: int = 1):
     cache_key = f"{ticker}_{limit}"
     if cache_key in income_statement_cache:
         return income_statement_cache[cache_key]
-    
+
     # Check if income statement is already stored in the database
     existing_income_statement = await db.income_statement.find_one({"ticker": ticker})
     if existing_income_statement:
         existing_income_statement["_id"] = str(existing_income_statement["_id"])
         return existing_income_statement
-    
+
     url = f"https://www.alphavantage.co/query?function=INCOME_STATEMENT&symbol={ticker}&apikey={API_KEY}"
     data = await make_request(url)
 
@@ -309,9 +326,7 @@ async def fetch_income_statement(ticker: str, limit: int = 1):
 
     # Store in MongoDB
     await db.income_statement.update_one(
-        {"ticker": ticker},
-        {"$set": limited_data},
-        upsert=True
+        {"ticker": ticker}, {"$set": limited_data}, upsert=True
     )
     logger.info(f"Stored income statement for {ticker} in database")
 
@@ -320,18 +335,19 @@ async def fetch_income_statement(ticker: str, limit: int = 1):
 
     return limited_data
 
+
 # Fetch Balance Sheet
 async def fetch_balance_sheet(ticker: str, limit: int = 1):
     cache_key = f"{ticker}_{limit}"
     if cache_key in balance_sheet_cache:
         return balance_sheet_cache[cache_key]
-    
+
     # Check if balance sheet is already stored in the database
     existing_balance_sheet = await db.balance_sheet.find_one({"ticker": ticker})
     if existing_balance_sheet:
         existing_balance_sheet["_id"] = str(existing_balance_sheet["_id"])
         return existing_balance_sheet
-    
+
     url = f"https://www.alphavantage.co/query?function=BALANCE_SHEET&symbol={ticker}&apikey={API_KEY}"
     data = await make_request(url)
 
@@ -344,9 +360,7 @@ async def fetch_balance_sheet(ticker: str, limit: int = 1):
 
     # Store in MongoDB
     await db.balance_sheet.update_one(
-        {"ticker": ticker},
-        {"$set": limited_data},
-        upsert=True
+        {"ticker": ticker}, {"$set": limited_data}, upsert=True
     )
     logger.info(f"Stored balance sheet for {ticker} in database")
 
@@ -355,21 +369,22 @@ async def fetch_balance_sheet(ticker: str, limit: int = 1):
 
     return limited_data
 
+
 # Fetch Cash Flow
 async def fetch_cash_flow(ticker: str, limit: int = 1):
     cache_key = f"{ticker}_{limit}"
     if cache_key in cash_flow_cache:
         return cash_flow_cache[cache_key]
-    
+
     url = f"https://www.alphavantage.co/query?function=CASH_FLOW&symbol={ticker}&apikey={API_KEY}"
     data = await make_request(url)
-    
+
     # Check if cash flow is already stored in the database
     existing_cash_flow = await db.cash_flow.find_one({"ticker": ticker})
     if existing_cash_flow:
         existing_cash_flow["_id"] = str(existing_cash_flow["_id"])
         return existing_cash_flow
-    
+
     # Process the data to limit the number of cash flows
     limited_data = {
         "ticker": ticker,
@@ -379,9 +394,7 @@ async def fetch_cash_flow(ticker: str, limit: int = 1):
 
     # Store in MongoDB
     await db.cash_flow.update_one(
-        {"ticker": ticker},
-        {"$set": limited_data},
-        upsert=True
+        {"ticker": ticker}, {"$set": limited_data}, upsert=True
     )
     logger.info(f"Stored cash flow for {ticker} in database")
 
@@ -390,33 +403,32 @@ async def fetch_cash_flow(ticker: str, limit: int = 1):
 
     return limited_data
 
+
 # Fetch Earnings
 async def fetch_earnings(ticker: str, limit: int = 1):
     cache_key = f"{ticker}_{limit}"
     if cache_key in earnings_cache:
         return earnings_cache[cache_key]
-    
+
     # Check if earnings are already stored in the database
     existing_earnings = await db.earnings.find_one({"ticker": ticker})
     if existing_earnings:
         existing_earnings["_id"] = str(existing_earnings["_id"])
         return existing_earnings
-    
+
     url = f"https://www.alphavantage.co/query?function=EARNINGS&symbol={ticker}&apikey={API_KEY}"
     data = await make_request(url)
-    
+
     # Process the data to limit the number of earnings
     limited_data = {
         "ticker": ticker,
         "annual_reports": data.get("annualReports", [])[:limit],
         # "quarterly_reports": data.get("quarterlyReports", [])[:limit]
     }
-    
+
     # Store in MongoDB
     await db.earnings.update_one(
-        {"ticker": ticker},
-        {"$set": limited_data},
-        upsert=True
+        {"ticker": ticker}, {"$set": limited_data}, upsert=True
     )
     logger.info(f"Stored earnings for {ticker} in database")
 
@@ -425,8 +437,15 @@ async def fetch_earnings(ticker: str, limit: int = 1):
 
     return limited_data
 
+
 # Fetch SMA
-async def fetch_SMA(ticker: str, interval: str = "weekly", time_period: int = 60, series_type: str = "close", limit: int = 12):
+async def fetch_SMA(
+    ticker: str,
+    interval: str = "weekly",
+    time_period: int = 60,
+    series_type: str = "close",
+    limit: int = 12,
+):
     """
     SMA (Simple Moving Average) is represented by a line on a stock chart that follows that previous n days closing price
         - When a stock goes below the line, it represents a bearish market (downward trend)
@@ -438,21 +457,28 @@ async def fetch_SMA(ticker: str, interval: str = "weekly", time_period: int = 60
     cache_key = f"{ticker}_{limit}"
     if cache_key in sma_cache:
         return sma_cache[cache_key]
-    
+
     url = f"https://www.alphavantage.co/query?function=SMA&symbol={ticker}&interval={interval}&time_period={time_period}&series_type={series_type}&apikey={API_KEY}"
     data = await make_request(url)
     sma_data = data.get("Technical Analysis: SMA", {})
-    
+
     # Limit the data to the last 'limit' entries
     limited_sma_data = dict(list(sma_data.items())[:limit])
-    
+
     # Cache the result
     sma_cache[cache_key] = limited_sma_data
 
     return limited_sma_data
 
+
 # Fetch EMA
-async def fetch_EMA(ticker: str, interval: str = "weekly", time_period: int = 60, series_type: str = "close", limit: int = 12):
+async def fetch_EMA(
+    ticker: str,
+    interval: str = "weekly",
+    time_period: int = 60,
+    series_type: str = "close",
+    limit: int = 12,
+):
     """
     EMA (Exponential Moving Average) is represented by a line on a stock chart that follows that previous n days closing price
         The difference here compared to SMA is that the EMA places a bigger weight on more recent days,
@@ -466,22 +492,24 @@ async def fetch_EMA(ticker: str, interval: str = "weekly", time_period: int = 60
     cache_key = f"{ticker}_{limit}"
     if cache_key in ema_cache:
         return ema_cache[cache_key]
-    
+
     url = f"https://www.alphavantage.co/query?function=EMA&symbol={ticker}&interval={interval}&time_period={time_period}&series_type={series_type}&apikey={API_KEY}"
     data = await make_request(url)
     ema_data = data.get("Technical Analysis: EMA", {})
-    
+
     # Limit the data to the last 'limit' entries
     limited_ema_data = dict(list(ema_data.items())[:limit])
-    
+
     # Cache the result
     ema_cache[cache_key] = limited_ema_data
 
     return limited_ema_data
 
+
 """
 Fetching live market data -----------------------
 """
+
 
 async def fetch_live_market_prices():
     """
@@ -489,25 +517,27 @@ async def fetch_live_market_prices():
     """
     global market_data_cache  # noqa: F824
     current_time = time.time()
-    
+
     # Refresh market data every 60 minutes
     if current_time - market_data_cache["last_updated"] < 3600:
         print("Returning cached market data")
         return market_data_cache["data"]
-    
+
     symbols = ["AAPL", "AMZN", "TSLA", "MSFT", "GOOG", "NVDA"]
     interval = "daily"
-    
+
     market_data = {}
 
     for symbol in symbols:
         try:
             url = f"https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol={symbol}&apikey={API_KEY}"
             data = await make_request(url)
-            
+
             # Check if API returned an error
             if "Error Message" in data or not data:
-                print(f"API Error for {symbol}: {data.get('Error Message', 'Unknown error')}")
+                print(
+                    f"API Error for {symbol}: {data.get('Error Message', 'Unknown error')}"
+                )
                 market_data[symbol] = {"current_price": None, "price_5_days_ago": None}
                 continue
 
@@ -538,7 +568,7 @@ async def fetch_live_market_prices():
 
             market_data[symbol] = {
                 "current_price": current_price,
-                "price_5_days_ago": price_5_days_ago
+                "price_5_days_ago": price_5_days_ago,
             }
 
         except Exception as e:
@@ -551,6 +581,7 @@ async def fetch_live_market_prices():
 
     return market_data
 
+
 async def fetch_top_gainers_losers(limit: int = 5):
     """
     Fetch the top gainers and losers from the Alpha Vantage API.
@@ -559,15 +590,15 @@ async def fetch_top_gainers_losers(limit: int = 5):
     cache_key = f"top_gainers_losers_{limit}"
     if cache_key in top_gainers_losers_cache:
         return top_gainers_losers_cache[cache_key]
-    
+
     try:
         # Corrected URL without the 'symbol' parameter
         url = f"https://www.alphavantage.co/query?function=TOP_GAINERS_LOSERS&apikey={API_KEY}"
         data = await make_request(url)
-        
+
         # Check if API returned a valid response
         gainers = data.get("top_gainers", [])[:limit]  # Use an empty list as fallback
-        losers = data.get("top_losers", [])[:limit]    # Use an empty list as fallback
+        losers = data.get("top_losers", [])[:limit]  # Use an empty list as fallback
 
         # If gainers or losers are empty, use mock data
         if not gainers:
@@ -577,11 +608,11 @@ async def fetch_top_gainers_losers(limit: int = 5):
                     "price": round(100 + i * 10, 2),
                     "change_amount": round(5 + i, 2),
                     "change_percentage": round(2.5 + i * 0.5, 2),
-                    "volume": 100000 + i * 1000
+                    "volume": 100000 + i * 1000,
                 }
                 for i in range(limit)
             ]
-        
+
         if not losers:
             losers = [
                 {
@@ -589,7 +620,7 @@ async def fetch_top_gainers_losers(limit: int = 5):
                     "price": round(100 - i * 10, 2),
                     "change_amount": round(-5 - i, 2),
                     "change_percentage": round(-2.5 - i * 0.5, 2),
-                    "volume": 100000 - i * 1000
+                    "volume": 100000 - i * 1000,
                 }
                 for i in range(limit)
             ]
@@ -604,7 +635,7 @@ async def fetch_top_gainers_losers(limit: int = 5):
                     "price": gainer.get("price", "N/A"),
                     "change_amount": gainer.get("change_amount", "N/A"),
                     "change_percentage": gainer.get("change_percentage", "N/A"),
-                    "volume": gainer.get("volume", "N/A")
+                    "volume": gainer.get("volume", "N/A"),
                 }
                 for gainer in gainers
             ],
@@ -614,10 +645,10 @@ async def fetch_top_gainers_losers(limit: int = 5):
                     "price": loser.get("price", "N/A"),
                     "change_amount": loser.get("change_amount", "N/A"),
                     "change_percentage": loser.get("change_percentage", "N/A"),
-                    "volume": loser.get("volume", "N/A")
+                    "volume": loser.get("volume", "N/A"),
                 }
                 for loser in losers
-            ]
+            ],
         }
 
         # Cache the result
@@ -637,7 +668,7 @@ async def fetch_top_gainers_losers(limit: int = 5):
                     "price": round(100 + i * 10, 2),
                     "change_amount": round(5 + i, 2),
                     "change_percentage": round(2.5 + i * 0.5, 2),
-                    "volume": 100000 + i * 1000
+                    "volume": 100000 + i * 1000,
                 }
                 for i in range(limit)
             ],
@@ -647,8 +678,8 @@ async def fetch_top_gainers_losers(limit: int = 5):
                     "price": round(100 - i * 10, 2),
                     "change_amount": round(-5 - i, 2),
                     "change_percentage": round(-2.5 - i * 0.5, 2),
-                    "volume": 100000 - i * 1000
+                    "volume": 100000 - i * 1000,
                 }
                 for i in range(limit)
-            ]
+            ],
         }

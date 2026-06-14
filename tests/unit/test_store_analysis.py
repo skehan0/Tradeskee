@@ -22,14 +22,14 @@ class DummyDB:
 
 def test_store_analysis_monkeypatch(monkeypatch):
     dummy_db = DummyDB()
-    monkeypatch.setattr(llm_service, 'db', dummy_db)
+    monkeypatch.setattr(llm_service, "db", dummy_db)
 
-    symbol = 'FOO'
-    analysis = 'sample analysis'
+    symbol = "FOO"
+    analysis = "sample analysis"
     llm_service.store_analysis(symbol, analysis)
 
     assert len(dummy_db.analyses.calls) == 1
     filter_q, update_q, upsert = dummy_db.analyses.calls[0]
-    assert filter_q == {'symbol': symbol}
-    assert 'analysis' in update_q['$set']
-    assert update_q['$set']['analysis'] == analysis
+    assert filter_q == {"symbol": symbol}
+    assert "analysis" in update_q["$set"]
+    assert update_q["$set"]["analysis"] == analysis

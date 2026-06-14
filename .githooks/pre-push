@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_root="$(git rev-parse --show-toplevel)"
+python_bin=""
+
+if [[ -x "$repo_root/venv/bin/python" ]]; then
+  python_bin="$repo_root/venv/bin/python"
+elif [[ -x "$repo_root/.venv/bin/python" ]]; then
+  python_bin="$repo_root/.venv/bin/python"
+elif command -v python3 >/dev/null 2>&1; then
+  python_bin="$(command -v python3)"
+else
+  echo "Python 3 is required for lint checks, but was not found." >&2
+  exit 1
+fi
+
+echo "Running backend lint checks..."
+"$python_bin" -m black --check "$repo_root/src" "$repo_root/tests"
+"$python_bin" -m isort --check-only "$repo_root/src" "$repo_root/tests"
+"$python_bin" -m flake8 "$repo_root/src" "$repo_root/tests"
+"$python_bin" -m mypy "$repo_root/src"
+
+if command -v npm >/dev/null 2>&1; then
+  echo "Running frontend lint checks..."
+  (cd "$repo_root/tradely" && npm run lint && npm run format:check)
+else
+  echo "npm not found; skipping frontend lint checks." >&2
+fi
+
+echo "Pre-push lint checks passed."

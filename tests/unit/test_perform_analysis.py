@@ -17,9 +17,28 @@ def make_sample_stock():
                 {"close": "98", "high": "102", "low": "93", "volume": 800000},
             ]
         },
-        "income_statement": {"annual_reports": [{"netIncome": "1000000", "totalRevenue": "5000000"}]},
-        "balance_sheet": {"annual_reports": [{"commonStockSharesOutstanding": "10000", "totalAssets": "2000000", "totalShareholderEquity": "1500000", "shortLongTermDebtTotal": "100000"}]},
-        "cash_flow": {"annual_reports": [{"operatingCashflow": "300000", "dividendPayout": "0", "dividendPayoutCommonStock": "0"}]},
+        "income_statement": {
+            "annual_reports": [{"netIncome": "1000000", "totalRevenue": "5000000"}]
+        },
+        "balance_sheet": {
+            "annual_reports": [
+                {
+                    "commonStockSharesOutstanding": "10000",
+                    "totalAssets": "2000000",
+                    "totalShareholderEquity": "1500000",
+                    "shortLongTermDebtTotal": "100000",
+                }
+            ]
+        },
+        "cash_flow": {
+            "annual_reports": [
+                {
+                    "operatingCashflow": "300000",
+                    "dividendPayout": "0",
+                    "dividendPayoutCommonStock": "0",
+                }
+            ]
+        },
         "sma": {},
         "ema": {},
         "news": [],
@@ -35,4 +54,6 @@ def test_perform_analysis_contains_expected_fields():
     # EPS should be computed
     assert "EPS:" in result
     # SMA was calculated from recent prices
-    assert "Simple Moving Average" in result or "Simple Moving Average (5-day)" in result
+    assert (
+        "Simple Moving Average" in result or "Simple Moving Average (5-day)" in result
+    )

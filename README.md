@@ -18,6 +18,14 @@ Quick Start
     pip install -r requirements.txt
     ```
 
+2.1. Enable automatic linting before pushes:
+
+    ```bash
+    bash scripts/setup-git-hooks.sh
+    ```
+
+    This configures Git to use the tracked `.githooks/pre-push` hook, which runs backend lint checks before each `git push`.
+
 3. Run the backend (development):
 
     ```bash
@@ -35,6 +43,7 @@ Quick Start
 Notes
 - Do not commit a real `.env` with secrets — use `.env.example` as the template.
 - The project expects a running MongoDB for full functionality. CI uses a lightweight test DB configuration.
+- The pre-push hook runs `black`, `isort`, `flake8`, `mypy`, and frontend lint/format checks where available.
 - For production deployment, review `src/core/config.py` for keys to set and recommended production changes.
 
 Status

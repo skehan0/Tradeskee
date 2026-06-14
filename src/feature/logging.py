@@ -3,6 +3,7 @@ import logging
 
 class StdoutLoggingService:
     """Placeholder logging handler for tests and local runs."""
+
     def __init__(self):
         pass
 

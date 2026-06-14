@@ -4,8 +4,10 @@ Shared pytest fixtures and configuration.
 Fixtures defined here are available to all tests without importing.
 This is pytest's "magic" - it auto-discovers conftest.py files.
 """
+
 import pytest
 from fastapi.testclient import TestClient
+
 from src.main import app
 
 
@@ -13,7 +15,7 @@ from src.main import app
 def test_client():
     """
     FastAPI test client fixture.
-    
+
     Usage in tests:
         def test_something(test_client):
             response = test_client.get("/health")
@@ -26,7 +28,7 @@ def test_client():
 def sample_stock_symbol():
     """
     Sample stock symbol for testing.
-    
+
     Using a fixture instead of hardcoding "AAPL" everywhere
     means we can change it in one place if needed.
     """
@@ -37,7 +39,7 @@ def sample_stock_symbol():
 def mock_alpha_vantage_quote_response():
     """
     Mock response from Alpha Vantage quote endpoint.
-    
+
     This is what the REAL API returns - we use this to test
     without calling the actual API (saves money, faster, reliable).
     """
@@ -52,7 +54,7 @@ def mock_alpha_vantage_quote_response():
             "07. latest trading day": "2024-02-23",
             "08. previous close": "150.5000",
             "09. change": "0.7500",
-            "10. change percent": "0.4987%"
+            "10. change percent": "0.4987%",
         }
     }
 
@@ -61,7 +63,7 @@ def mock_alpha_vantage_quote_response():
 def mock_alpha_vantage_error_response():
     """
     Mock error response from Alpha Vantage.
-    
+
     Used to test how your code handles API errors.
     """
     return {

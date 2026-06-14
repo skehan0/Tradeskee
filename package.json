@@ -1,4 +1,15 @@
 {
+  "scripts": {
+    "format:py": "black src tests && isort src tests",
+    "format:py:check": "black --check src tests && isort --check-only src tests",
+    "lint:py": "flake8 src tests && mypy src",
+    "format:web": "npm --prefix tradely run format",
+    "format:web:check": "npm --prefix tradely run format:check",
+    "lint:web": "npm --prefix tradely run lint",
+    "format": "npm run format:py && npm run format:web",
+    "format:check": "npm run format:py:check && npm run format:web:check",
+    "lint": "npm run lint:py && npm run lint:web"
+  },
   "dependencies": {
     "axios": "^1.7.9",
     "jspdf": "^3.0.1",

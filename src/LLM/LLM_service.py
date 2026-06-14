@@ -1,5 +1,4 @@
 from fastapi import HTTPException
-from src.api.services.stock_services import fetch_all_stock_data
 from pymongo import MongoClient
 from datetime import datetime
 import requests
@@ -18,9 +17,9 @@ load_dotenv()
 # Initialize logger
 logger = build_app_logger(handlers=[StdoutLoggingService()])
 
-# MongoDB setup
-client = AsyncIOMotorClient(os.getenv("MONGODB_URI"))
-db = client.tradely
+# MongoDB setup will be initialized at runtime where needed
+# (avoid heavy imports at module import time for tests)
+db = None
 
 
 # Helper function to safely convert to float
@@ -343,6 +342,8 @@ async def fetch_and_analyze_all_stock_data(ticker: str):
     try:
         logger.info("Starting stock analysis", ticker=ticker)
         print(f"Debug: Fetching and analyzing stock data for ticker: {ticker}")
+        # Import the stock service here to avoid heavy top-level imports during tests
+        from src.api.services.stock_services import fetch_all_stock_data
 
         # Fetch real stock data using the stock services
         stock_data = validate_stock_data(await fetch_all_stock_data(ticker))

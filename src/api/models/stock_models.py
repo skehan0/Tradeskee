@@ -1,5 +1,7 @@
+from typing import Optional
+
 from pydantic import BaseModel
-from typing import List, Dict, Optional
+
 
 class StockMetadata(BaseModel):
     name: str
@@ -14,9 +16,11 @@ class StockMetadata(BaseModel):
     price_targets: float
     events: str
     about_ticker: str
-    
+
+
 class CurrentPrice(BaseModel):
     current_price: float
+
 
 class StockHistoricalData(BaseModel):
     Date: str
@@ -25,14 +29,16 @@ class StockHistoricalData(BaseModel):
     Low: float
     Close: float
     Volume: int
-    
+
+
 class NewsHeadline(BaseModel):
     number: int
     title: str
     summary: str
     pubDate: str
     conicalURL: str
-    
+
+
 class IncomeStatement(BaseModel):
     fiscal_date_ending: str
     reported_currency: str
@@ -47,8 +53,9 @@ class IncomeStatement(BaseModel):
     total_liabilities: Optional[float]
     shareholder_equity: Optional[float]
     cash_and_cash_equivalents: Optional[float]
-    capital_expenditures: Optional[float] 
-    
+    capital_expenditures: Optional[float]
+
+
 class BalanceSheet(BaseModel):
     fiscal_date_ending: str
     reported_currency: str
@@ -88,6 +95,7 @@ class BalanceSheet(BaseModel):
     long_term_debt_noncurrent: Optional[float]
     short_long_term_debt_total: Optional[float]
 
+
 class CashFlow(BaseModel):
     fiscal_date_ending: str
     reported_currency: str
@@ -106,18 +114,22 @@ class CashFlow(BaseModel):
     dividends_paid: Optional[float]
     change_in_cash_and_cash_equivalents: Optional[float]
 
+
 class Earnings(BaseModel):
     fiscalDateEnding: str
     reportedEPS: Optional[float]
-    
+
+
 class SMA(BaseModel):
     date: str
     SMA: float
-    
+
+
 class EMA(BaseModel):
     data: str
-    EMA: float    
-    
+    EMA: float
+
+
 class QuestionRequest(BaseModel):
     question: str
-    context: str = None
+    context: Optional[str] = None

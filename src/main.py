@@ -1,13 +1,14 @@
 """
 Tradeskee API - Main application entry point.
 """
+
+import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-import uvicorn
 
-from src.core.config import settings
 from src.api.routes import stock_routes  # Only stock routes for now
+from src.core.config import settings
 
 # Create FastAPI application
 app = FastAPI(
@@ -29,6 +30,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 # Root endpoint
 @app.get("/", tags=["Root"])
 async def root():
@@ -43,12 +45,13 @@ async def root():
         "health": f"http://127.0.0.1:{settings.PORT}/health",
     }
 
+
 # Health check endpoint
 @app.get("/health", tags=["Health"])
 async def health_check():
     """
     Health check endpoint for monitoring and load balancers.
-    
+
     Returns:
         dict: Health status and application info
     """
@@ -59,14 +62,13 @@ async def health_check():
             "app": settings.APP_NAME,
             "version": settings.APP_VERSION,
             "environment": settings.ENVIRONMENT,
-        }
+        },
     )
+
 
 # Include stock routes (only working endpoint for now)
 app.include_router(
-    stock_routes.router,
-    prefix=f"{settings.API_V1_PREFIX}/stocks",
-    tags=["Stocks"]
+    stock_routes.router, prefix=f"{settings.API_V1_PREFIX}/stocks", tags=["Stocks"]
 )
 
 # TODO: Fix and uncomment these after refactoring

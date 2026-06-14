@@ -1,37 +1,53 @@
-# Final Year Project (FYP) - Tradeskee - AI Data Analysis Tool
+# Tradeskee — AI Stock Analysis (Final Year Project)
 
-## Project Overview
-This repository contains the source code and documentation for my final year project. The project aims to develop an AI-powered stock analysis platform that leverages real-time contextual data to enhance AI decision-making and provide actionable insights for users.
+This repository contains the Tradeskee backend (FastAPI) and frontend (React) for research and demonstration purposes.
 
-## Features
-    - Real-time stock data analytics
-    - Integration with Alpha Vantage APIs
-    - Ollama AI model integration
-    - MongoDB for data storage
-    - FastAPI backend
-    - React frontend for user interaction
+Quick Start
+1. Copy environment template and edit locally:
 
-## Tech Stack
-    - Frontend: React.js
-    - Backend: FastAPI (Python)
-    - Database: MongoDB
-    - APIs: Alpha Vantage
-    - AI Models: Ollama
+    ```bash
+    cp .env.example .env
+    # Edit .env as needed (do NOT commit)
+    ```
 
-## Installation
-1. Clone the repository:
-   git clone https://github.com/skehan0/FYP.git
-   cd FYP
+2. Create and activate a local Python virtualenv (recommended):
 
-## Set Up
-Currently to run on your own laptop: You must generate your own personal API keys for Alpha Vantage, Ollama and create a database with MongoDB
-You must also download Ollama Models of your choice onto your local machine, ensure your have enough dedicated RAM to run
+    ```bash
+    python -m venv venv
+    source venv/bin/activate
+    pip install -r requirements.txt
+    ```
 
-1. python -m venv venv
-    source venv/bin/activate  # On Windows: venv\Scripts\activate
-2. Run 'pip install -r requirements.txt'
-3. Set up Node.js environment
-    'cd tradely'
-    'npm install'
-4. Run FastAPI 'uvicorn src.main:app --reload'
-5. Run App 'cd tradely' 'npm run'
+2.1. Enable automatic linting before pushes:
+
+    ```bash
+    bash scripts/setup-git-hooks.sh
+    ```
+
+    This configures Git to use the tracked `.githooks/pre-push` hook, which runs backend lint checks before each `git push`.
+
+3. Run the backend (development):
+
+    ```bash
+    uvicorn src.main:app --reload
+    ```
+
+4. Start the frontend (in a separate terminal):
+
+    ```bash
+    cd tradely
+    npm install
+    npm start
+    ```
+
+Notes
+- Do not commit a real `.env` with secrets — use `.env.example` as the template.
+- The project expects a running MongoDB for full functionality. CI uses a lightweight test DB configuration.
+- The pre-push hook runs `black`, `isort`, `flake8`, `mypy`, and frontend lint/format checks where available.
+- For production deployment, review `src/core/config.py` for keys to set and recommended production changes.
+
+Status
+- This is a university project: working prototype, not production hardened. See `FYP_Tradeskee_Final_Report_Gavin_Skehan_21440824.pdf` for details.
+
+Contact
+- For questions, open an issue or reach out to the repository owner.

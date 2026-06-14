@@ -1,6 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import '../Styles/analysisSection.css';
-import { saveAsTXT, saveAsJSON, saveAsCSV, saveAsPDF } from '../Utils/fileUtils';
+import React, { useState, useEffect } from "react";
+import "../Styles/analysisSection.css";
+import {
+  saveAsTXT,
+  saveAsJSON,
+  saveAsCSV,
+  saveAsPDF,
+} from "../Utils/fileUtils";
 
 const AnalysisSection = ({ analysis, isLoading, error }) => {
   const [visibleLines, setVisibleLines] = useState([]);
@@ -9,15 +14,15 @@ const AnalysisSection = ({ analysis, isLoading, error }) => {
   // Animate the display of analysis lines
   useEffect(() => {
     if (analysis && analysis.deepthinking_response) {
-      console.log('Animating Analysis:', analysis.deepthinking_response);
-      const lines = analysis.deepthinking_response.split('. ');
+      console.log("Animating Analysis:", analysis.deepthinking_response);
+      const lines = analysis.deepthinking_response.split(". ");
       setVisibleLines([]); // Reset visible lines
       const newTimeouts = [];
 
       lines.forEach((line, index) => {
         const timeout = setTimeout(() => {
           setVisibleLines((prev) => [...prev, line]);
-          console.log('Debug: Adding line:', line);
+          console.log("Debug: Adding line:", line);
         }, index * 600); // Adjust delay as needed
         newTimeouts.push(timeout);
       });
@@ -40,28 +45,37 @@ const AnalysisSection = ({ analysis, isLoading, error }) => {
   // Save the analysis as a TXT file
   const handleSaveAsTXT = () => {
     if (analysis && analysis.deepthinking_response) {
-      saveAsTXT(analysis.deepthinking_response, `${analysis.symbol || 'analysis'}_deepthinking.txt`);
+      saveAsTXT(
+        analysis.deepthinking_response,
+        `${analysis.symbol || "analysis"}_deepthinking.txt`,
+      );
     }
   };
 
   // Save the entire analysis as a JSON file
   const handleSaveAsJSON = () => {
     if (analysis) {
-      saveAsJSON(analysis, `${analysis.symbol || 'analysis'}_data.json`);
+      saveAsJSON(analysis, `${analysis.symbol || "analysis"}_data.json`);
     }
   };
 
   // Save the analysis as a PDF file
   const handleSaveAsPDF = () => {
     if (analysis && analysis.deepthinking_response) {
-      saveAsPDF(analysis.deepthinking_response, `${analysis.symbol || 'analysis'}_deepthinking.pdf`);
+      saveAsPDF(
+        analysis.deepthinking_response,
+        `${analysis.symbol || "analysis"}_deepthinking.pdf`,
+      );
     }
   };
 
   // Save the analysis as a CSV file
   const handleSaveAsCSV = () => {
     if (analysis && analysis.deepthinking_response) {
-      saveAsCSV(analysis.deepthinking_response, `${analysis.symbol || 'analysis'}_deepthinking.csv`);
+      saveAsCSV(
+        analysis.deepthinking_response,
+        `${analysis.symbol || "analysis"}_deepthinking.csv`,
+      );
     }
   };
 
@@ -75,7 +89,9 @@ const AnalysisSection = ({ analysis, isLoading, error }) => {
           visibleLines.map((line, index) => (
             <p
               key={index}
-              className={line.toLowerCase().includes('recommendation') ? 'highlight' : ''}
+              className={
+                line.toLowerCase().includes("recommendation") ? "highlight" : ""
+              }
             >
               {line}
             </p>

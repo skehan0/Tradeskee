@@ -28,7 +28,9 @@
   border: 1px solid #333;
   border-radius: 8px;
   margin-bottom: 15px;
-  transition: transform 0.3s, box-shadow 0.3s;
+  transition:
+    transform 0.3s,
+    box-shadow 0.3s;
 }
 
 .item-container:hover {
@@ -61,11 +63,11 @@
 }
 
 .price-change.positive {
-  color: #28a745; 
+  color: #28a745;
 }
 
 .price-change.negative {
-  color: #dc3545; 
+  color: #dc3545;
 }
 
 .arrow {
@@ -74,9 +76,9 @@
 }
 
 .arrow.up {
-  color: #28a745; 
+  color: #28a745;
 }
 
 .arrow.down {
-  color: #dc3545; 
+  color: #dc3545;
 }

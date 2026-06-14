@@ -1,10 +1,16 @@
-import React from 'react';
-import '../Styles/questionSection.css';
+import React from "react";
+import "../Styles/questionSection.css";
 
-const QuestionSection = ({ analysis, userQuestion, setUserQuestion, answer, handleAskQuestion }) => {
+const QuestionSection = ({
+  analysis,
+  userQuestion,
+  setUserQuestion,
+  answer,
+  handleAskQuestion,
+}) => {
   const handleSubmit = async () => {
     if (!userQuestion.trim()) {
-      alert('Please enter a valid question.');
+      alert("Please enter a valid question.");
       return;
     }
 

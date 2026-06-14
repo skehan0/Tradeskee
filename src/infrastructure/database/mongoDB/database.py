@@ -1,7 +1,9 @@
 import os
-from motor.motor_asyncio import AsyncIOMotorClient
+
 from dotenv import load_dotenv
-from src.feature.logging import build_app_logger, StdoutLoggingService
+from motor.motor_asyncio import AsyncIOMotorClient
+
+from src.feature.logging import StdoutLoggingService, build_app_logger
 
 load_dotenv()
 
@@ -9,7 +11,8 @@ load_dotenv()
 logger = build_app_logger(handlers=[StdoutLoggingService()])
 
 DATABASE_NAME = "tradely"
-COLLECTION_NAMES = {'historical_data', 'stock_metadata'}
+COLLECTION_NAMES = {"historical_data", "stock_metadata"}
+
 
 class DatabaseManager:
     def __init__(self):
@@ -54,6 +57,7 @@ class DatabaseManager:
         """Get the database instance."""
         await self.connect()
         return self.db
+
 
 # Create an instance of DatabaseManager
 database = DatabaseManager()

@@ -1,5 +1,5 @@
-import React from 'react';
-import '../Styles/topGainersLosers.css';
+import React from "react";
+import "../Styles/topGainersLosers.css";
 
 const TopGainersLosers = ({ gainers, losers }) => {
   return (

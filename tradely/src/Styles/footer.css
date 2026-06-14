@@ -10,13 +10,13 @@
 }
 
 .footer::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   height: 1px;
-  background: linear-gradient(90deg, transparent, #00D1FF, transparent);
+  background: linear-gradient(90deg, transparent, #00d1ff, transparent);
 }
 
 .footer-content {
@@ -53,13 +53,13 @@
 }
 
 .footer a::after {
-  content: '';
+  content: "";
   position: absolute;
   bottom: 0;
   left: 0;
   width: 0;
   height: 1px;
-  background: linear-gradient(90deg, #00D1FF, #007BFF);
+  background: linear-gradient(90deg, #00d1ff, #007bff);
   transition: width 0.3s ease;
 }
 
@@ -86,7 +86,7 @@
   height: 36px;
   border-radius: 50%;
   background: rgba(0, 209, 255, 0.1);
-  color: #00D1FF;
+  color: #00d1ff;
   transition: all 0.3s ease;
   padding: 30px;
 }
@@ -108,12 +108,12 @@
   .footer {
     padding: 30px 15px;
   }
-  
+
   .footer-links {
     gap: 15px;
     flex-direction: column;
   }
-  
+
   .footer-social {
     gap: 15px;
   }

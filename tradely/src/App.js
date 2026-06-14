@@ -1,51 +1,58 @@
-import React, { useState, useEffect } from 'react';
-import './Styles/App.css';
-import './Styles/topGainersLosers.css';
-import './Styles/questionSection.css';
-import Header from './Components/Header';
-import News from './Components/News';
-import LiveMarketData from './Components/LiveMarketPrices';
-import Footer from './Components/footer';
-import TopGainersLosers from './Components/TopGainersLosers';
-import { fetchLiveMarketPrices, fetchLiveNewsHeadlines, fetchTopGainersLosers, analyzeStock, askQuestion } from './Services/api';
-import AnalysisSection from './Components/AnalysisSection';
-import ChartSection from './Components/ChartSection';
-import QuestionSection from './Components/QuestionSection';
-import logo from './Assets/Tradeskee_logo_transparent.png';
-
+import React, { useState, useEffect } from "react";
+import "./Styles/App.css";
+import "./Styles/topGainersLosers.css";
+import "./Styles/questionSection.css";
+import Header from "./Components/Header";
+import News from "./Components/News";
+import LiveMarketData from "./Components/LiveMarketPrices";
+import Footer from "./Components/footer";
+import TopGainersLosers from "./Components/TopGainersLosers";
+import {
+  fetchLiveMarketPrices,
+  fetchLiveNewsHeadlines,
+  fetchTopGainersLosers,
+  analyzeStock,
+  askQuestion,
+} from "./Services/api";
+import AnalysisSection from "./Components/AnalysisSection";
+import ChartSection from "./Components/ChartSection";
+import QuestionSection from "./Components/QuestionSection";
+import logo from "./Assets/Tradeskee_logo_transparent.png";
 
 function App() {
-  const [ticker, setTicker] = useState('');
-  const [range, setRange] = useState('1y');
+  const [ticker, setTicker] = useState("");
+  const [range, setRange] = useState("1y");
   const [liveMarketData, setLiveMarketPrices] = useState(null);
   const [liveNews, setLiveNews] = useState(null);
   const [error, setError] = useState(null);
   const [analysis, setAnalysis] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [gainersLosers, setGainersLosers] = useState({ gainers: [], losers: [] });
-  const [userQuestion, setUserQuestion] = useState('');
-  const [answer, setAnswer] = useState('');
+  const [gainersLosers, setGainersLosers] = useState({
+    gainers: [],
+    losers: [],
+  });
+  const [userQuestion, setUserQuestion] = useState("");
+  const [answer, setAnswer] = useState("");
 
   useEffect(() => {
     const fetchLiveData = async () => {
       try {
         // Fetch live market prices
         const marketData = await fetchLiveMarketPrices();
-        console.log('Live Market Data:', marketData);
+        console.log("Live Market Data:", marketData);
         setLiveMarketPrices(marketData);
 
         // Fetch live news
         const newsData = await fetchLiveNewsHeadlines();
-        console.log('Live News Data:', newsData);
+        console.log("Live News Data:", newsData);
         setLiveNews(newsData);
 
         // Fetch top gainers and losers
         const gainersLosersData = await fetchTopGainersLosers(5);
-        console.log('Top Gainers and Losers:', gainersLosersData);
+        console.log("Top Gainers and Losers:", gainersLosersData);
         setGainersLosers(gainersLosersData);
-
       } catch (error) {
-        console.error('Error fetching live data:', error);
+        console.error("Error fetching live data:", error);
         setError(error.message);
       }
     };
@@ -68,12 +75,12 @@ function App() {
 
     try {
       const analysisData = await analyzeStock(ticker);
-      console.log('Debug: Stock Analysis Data:', analysisData);
+      console.log("Debug: Stock Analysis Data:", analysisData);
       setAnalysis(analysisData); // Update the state
-      console.log('Debug: Updated analysis state:', analysisData); // Confirm state update
+      console.log("Debug: Updated analysis state:", analysisData); // Confirm state update
       setIsLoading(false);
     } catch (err) {
-      console.error('Debug: Error fetching stock analysis:', err);
+      console.error("Debug: Error fetching stock analysis:", err);
       setError(err.response?.data?.message);
       setIsLoading(false);
     }
@@ -81,26 +88,28 @@ function App() {
 
   const handleAskQuestion = async (question) => {
     if (!analysis) {
-      setAnswer('Please analyze a stock first before asking a question.');
+      setAnswer("Please analyze a stock first before asking a question.");
       return;
     }
-  
+
     try {
       setIsLoading(true);
-      setAnswer(''); // Clear the previous answer
-  
+      setAnswer(""); // Clear the previous answer
+
       // Use a simple string as the context
-      const context = 'stock analysis';
-  
+      const context = "stock analysis";
+
       const response = await askQuestion(question, context);
-  
+
       if (response && response.answer) {
         setAnswer(response.answer);
       } else {
-        setAnswer('No answer received from the backend.');
+        setAnswer("No answer received from the backend.");
       }
     } catch (err) {
-      setAnswer('An error occurred while fetching the answer. Please try again.');
+      setAnswer(
+        "An error occurred while fetching the answer. Please try again.",
+      );
     } finally {
       setIsLoading(false);
     }
@@ -164,7 +173,7 @@ function App() {
       <Header />
       <header className="App-header">
         <div className="hero-section">
-        <img src={logo} alt="Logo" className="logo" />
+          <img src={logo} alt="Logo" className="logo" />
           <h2>Welcome to Tradeskee</h2>
           <p>Your go-to platform for stock market analysis and insights.</p>
         </div>
@@ -199,8 +208,16 @@ function App() {
           <button type="submit">Analyze Stock</button>
         </form>
         {error && <div>Error: {error}</div>}
-        <AnalysisSection analysis={analysis} isLoading={isLoading} error={error} />
-        <ChartSection ticker={ticker} isLoading={isLoading} analysis={analysis} />
+        <AnalysisSection
+          analysis={analysis}
+          isLoading={isLoading}
+          error={error}
+        />
+        <ChartSection
+          ticker={ticker}
+          isLoading={isLoading}
+          analysis={analysis}
+        />
         <QuestionSection
           analysis={analysis}
           userQuestion={userQuestion}
@@ -209,7 +226,10 @@ function App() {
           handleAskQuestion={handleAskQuestion}
         />
         {liveMarketData && <LiveMarketData data={liveMarketData} />}
-        <TopGainersLosers gainers={gainersLosers.gainers} losers={gainersLosers.losers} />
+        <TopGainersLosers
+          gainers={gainersLosers.gainers}
+          losers={gainersLosers.losers}
+        />
         {liveNews && <News fetchNews={fetchLiveNewsHeadlines} />}
       </header>
       <Footer />
@@ -218,7 +238,6 @@ function App() {
 }
 
 export default App;
-
 
 // const mockSendToDeepSeek = async (llmResponse) => {
 //   console.log("Debug: Mock LLM response being sent to DeepSeek:", llmResponse);

@@ -2,7 +2,7 @@
 body {
   background: linear-gradient(145deg, #0f0f1a, #1a1a2a);
   color: #ffffff;
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: "Inter", system-ui, sans-serif;
   line-height: 1.6;
   min-height: 100vh;
   padding: 20px;
@@ -23,7 +23,7 @@ body {
 .hero-section h2 {
   font-size: 2.8rem;
   font-weight: 800;
-  background: linear-gradient(45deg, #00D1FF, #007BFF);
+  background: linear-gradient(45deg, #00d1ff, #007bff);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -45,10 +45,12 @@ body {
   height: auto;
   margin: 0 auto 30px;
   padding: 20px;
-  background: linear-gradient(45deg, #007BFF 30%, #00D1FF 70%);
+  background: linear-gradient(45deg, #007bff 30%, #00d1ff 70%);
   border-radius: 24px;
   box-shadow: 0 0 30px rgba(0, 209, 255, 0.25);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
 }
 
 .logo:hover {
@@ -91,7 +93,7 @@ form input[type="text"]::placeholder {
 
 form input[type="text"]:focus,
 form select:focus {
-  border-color: #00D1FF;
+  border-color: #00d1ff;
   box-shadow: 0 0 12px rgba(0, 209, 255, 0.3);
   background: rgba(30, 30, 47, 0.95);
 }
@@ -99,7 +101,7 @@ form select:focus {
 form button {
   padding: 14px 32px;
   font-size: 1.1rem;
-  background: linear-gradient(135deg, #007BFF 0%, #00D1FF 100%);
+  background: linear-gradient(135deg, #007bff 0%, #00d1ff 100%);
   border: none;
   border-radius: 8px;
   position: relative;
@@ -113,16 +115,18 @@ form button:hover {
 }
 
 form button::after {
-  content: '';
+  content: "";
   position: absolute;
   top: -50%;
   left: -50%;
   width: 200%;
   height: 200%;
-  background: linear-gradient(45deg, 
-    transparent 20%, 
-    rgba(255, 255, 255, 0.1) 50%, 
-    transparent 80%);
+  background: linear-gradient(
+    45deg,
+    transparent 20%,
+    rgba(255, 255, 255, 0.1) 50%,
+    transparent 80%
+  );
   transform: rotate(45deg);
   transition: all 0.5s ease;
 }
@@ -163,7 +167,7 @@ form button:hover::after {
 }
 
 .question-button {
-  background: linear-gradient(135deg, #007BFF 0%, #00D1FF 100%);
+  background: linear-gradient(135deg, #007bff 0%, #00d1ff 100%);
   padding: 12px 28px;
   font-weight: 600;
   transition: all 0.3s ease;
@@ -175,10 +179,10 @@ form button:hover::after {
 }
 
 .answer {
-  color: #00FFAA;
+  color: #00ffaa;
   padding: 15px;
   background: rgba(0, 255, 170, 0.05);
-  border-left: 3px solid #00FFAA;
+  border-left: 3px solid #00ffaa;
   border-radius: 4px;
   margin-top: 20px;
 }
@@ -188,17 +192,17 @@ form button:hover::after {
   .hero-section h2 {
     font-size: 2rem;
   }
-  
+
   .logo {
     width: 280px;
     padding: 15px;
   }
-  
+
   form {
     flex-direction: column;
     width: 90%;
   }
-  
+
   form input[type="text"],
   form select {
     width: 100%;

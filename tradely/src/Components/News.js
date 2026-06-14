@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import '../Styles/news.css';
+import React, { useState, useEffect } from "react";
+import "../Styles/news.css";
 
 const News = ({ fetchNews, isLiveNews = false }) => {
   const [data, setData] = useState([]);
@@ -8,8 +8,12 @@ const News = ({ fetchNews, isLiveNews = false }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const cachedNews = localStorage.getItem(isLiveNews ? 'liveNewsData' : 'newsData');
-    const cachedTimestamp = localStorage.getItem(isLiveNews ? 'liveNewsTimestamp' : 'newsTimestamp');
+    const cachedNews = localStorage.getItem(
+      isLiveNews ? "liveNewsData" : "newsData",
+    );
+    const cachedTimestamp = localStorage.getItem(
+      isLiveNews ? "liveNewsTimestamp" : "newsTimestamp",
+    );
     const now = new Date().getTime();
 
     if (cachedNews && cachedTimestamp && now - cachedTimestamp < 3600000) {
@@ -20,14 +24,20 @@ const News = ({ fetchNews, isLiveNews = false }) => {
         .then((newsData) => {
           if (newsData && newsData.length > 0) {
             setData(newsData.slice(0, 9)); // Limit to 9 articles
-            localStorage.setItem(isLiveNews ? 'liveNewsData' : 'newsData', JSON.stringify(newsData.slice(0, 9)));
-            localStorage.setItem(isLiveNews ? 'liveNewsTimestamp' : 'newsTimestamp', now);
+            localStorage.setItem(
+              isLiveNews ? "liveNewsData" : "newsData",
+              JSON.stringify(newsData.slice(0, 9)),
+            );
+            localStorage.setItem(
+              isLiveNews ? "liveNewsTimestamp" : "newsTimestamp",
+              now,
+            );
           } else {
-            setError('No news available at the moment.');
+            setError("No news available at the moment.");
           }
         })
         .catch(() => {
-          setError('Failed to fetch news. Please try again later.');
+          setError("Failed to fetch news. Please try again later.");
         })
         .finally(() => {
           setIsLoading(false);
@@ -51,13 +61,14 @@ const News = ({ fetchNews, isLiveNews = false }) => {
 
   const renderDots = () => {
     const dots = [];
-    for (let i = 0; i < 3; i++) { // Fixed to 3 pages
+    for (let i = 0; i < 3; i++) {
+      // Fixed to 3 pages
       dots.push(
         <span
           key={i}
-          className={`dot ${currentIndex / 3 === i ? 'active' : ''}`}
+          className={`dot ${currentIndex / 3 === i ? "active" : ""}`}
           onClick={() => setCurrentIndex(i * 3)} // Jump to the corresponding page
-        ></span>
+        ></span>,
       );
     }
     return dots;
@@ -68,25 +79,35 @@ const News = ({ fetchNews, isLiveNews = false }) => {
   }
 
   if (error || data.length === 0) {
-    return <div className="no-news-message">No news available at the moment.</div>;
+    return (
+      <div className="no-news-message">No news available at the moment.</div>
+    );
   }
 
   return (
     <div className="news">
-      <h2>{isLiveNews ? 'Live News' : 'Latest News'}</h2>
+      <h2>{isLiveNews ? "Live News" : "Latest News"}</h2>
       <div className="news-container">
-        <button className="arrow left" onClick={handlePrev}>&#9664;</button>
+        <button className="arrow left" onClick={handlePrev}>
+          &#9664;
+        </button>
         {data.slice(currentIndex, currentIndex + 3).map((article, index) => (
           <div key={index} className="news-article">
-            {article.thumbnail && <img src={article.thumbnail} alt="thumbnail" />}
+            {article.thumbnail && (
+              <img src={article.thumbnail} alt="thumbnail" />
+            )}
             <div className="news-content">
               <h3>{article.title}</h3>
               <p className="summary">{article.summary}</p>
-              <a href={article.url} target="_blank" rel="noopener noreferrer">Read more</a>
+              <a href={article.url} target="_blank" rel="noopener noreferrer">
+                Read more
+              </a>
             </div>
           </div>
         ))}
-        <button className="arrow right" onClick={handleNext}>&#9654;</button>
+        <button className="arrow right" onClick={handleNext}>
+          &#9654;
+        </button>
       </div>
       <div className="dots-container">{renderDots()}</div>
     </div>

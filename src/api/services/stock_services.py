@@ -17,7 +17,7 @@ API_KEY = settings.ALPHA_VANTAGE_API_KEY
 
 # MongoDB setup
 client: AsyncIOMotorClient = AsyncIOMotorClient(settings.database_url)
-db = client[settings.MONGODB_DB_NAME]
+db = client.get_database(settings.MONGODB_DB_NAME)
 
 # Caches with a TTL of 1 hour and a max size of 100 items
 metadata_cache = TTLCache(maxsize=100, ttl=3600)
@@ -183,7 +183,7 @@ async def fetch_historical_data(ticker: str, limit: int = 5):
         return existing_data
 
     try:
-        ts = TimeSeries(key=os.getenv("ALPHA_VANTAGE_API_KEY"), output_format="json")
+        ts = TimeSeries(key=API_KEY, output_format="json")
         data, _ = ts.get_weekly_adjusted(ticker)
 
         # Extract relevant details and limit the number of entries

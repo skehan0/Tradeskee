@@ -1,4 +1,6 @@
-from fastapi import APIRouter, HTTPException, Query
+from typing import Annotated
+
+from fastapi import APIRouter, HTTPException, Path, Query
 from pydantic import BaseModel
 
 from src.api.services.stock_services import (
@@ -27,6 +29,15 @@ from src.LLM.LLM_service import (
 
 router = APIRouter()
 logger = build_app_logger(handlers=[StdoutLoggingService()])
+Ticker = Annotated[
+    str,
+    Path(
+        min_length=1,
+        max_length=10,
+        pattern=r"^[A-Za-z][A-Za-z0-9.-]*$",
+        description="A valid stock ticker symbol",
+    ),
+]
 
 
 # Request model for the Ask Question endpoint
@@ -39,7 +50,7 @@ class QuestionRequest(BaseModel):
 
 # Main Endpoint
 @router.get("/analyze_all/{ticker}")
-async def analyze_all_stock_data(ticker: str):
+async def analyze_all_stock_data(ticker: Ticker):
     """
     Endpoint to fetch all stock data, analyze it (stage 1), send it to the LLM to analyze (stage 2)
     """
@@ -61,27 +72,28 @@ async def analyze_all_stock_data(ticker: str):
 
 
 @router.get("/metadata/{ticker}")
-async def get_stock_metadata(ticker: str):
+async def get_stock_metadata(ticker: Ticker):
     logger.debug("Stock metadata requested", ticker=ticker)
     return await fetch_stock_metadata(ticker)
 
 
 @router.get("/historical/{ticker}")
-async def get_historical_data(ticker: str):
+async def get_historical_data(ticker: Ticker):
     logger.debug("Historical data requested", ticker=ticker)
     return await fetch_historical_data(ticker)
 
 
 @router.get("/news/{ticker}")
 async def get_news_headlines(
-    ticker: str, limit: int = Query(5, description="Number of news items to return")
+    ticker: Ticker,
+    limit: int = Query(5, ge=1, le=100, description="Number of news items to return"),
 ):
     return await fetch_news_headlines(ticker, limit)
 
 
 @router.get("/live-news-headlines")
 async def get_live_news_headlines(
-    limit: int = Query(3, description="Number of news items to return")
+    limit: int = Query(3, ge=1, le=100, description="Number of news items to return")
 ):
     news = await fetch_live_news_headlines(limit)
     return {"feed": news}
@@ -98,8 +110,10 @@ async def get_live_news_headlines(
 # Financial Statement
 @router.get("/income/{ticker}")
 async def get_income_statement(
-    ticker: str,
-    limit: int = Query(5, description="Number of years and quarters to return"),
+    ticker: Ticker,
+    limit: int = Query(
+        5, ge=1, le=100, description="Number of years and quarters to return"
+    ),
 ):
     return await fetch_income_statement(ticker, limit)
 
@@ -107,17 +121,21 @@ async def get_income_statement(
 # Financial Statement
 @router.get("/balance/{ticker}")
 async def get_balance_sheet(
-    ticker: str,
-    limit: int = Query(5, description="Number of years and quarters to return"),
+    ticker: Ticker,
+    limit: int = Query(
+        5, ge=1, le=100, description="Number of years and quarters to return"
+    ),
 ):
-    return await fetch_balance_sheet(ticker)
+    return await fetch_balance_sheet(ticker, limit)
 
 
 # Financial Statement
 @router.get("/cashflow/{ticker}")
 async def get_cash_flow(
-    ticker: str,
-    limit: int = Query(5, description="Number of years and quarters to return"),
+    ticker: Ticker,
+    limit: int = Query(
+        5, ge=1, le=100, description="Number of years and quarters to return"
+    ),
 ):
     return await fetch_cash_flow(ticker, limit)
 
@@ -125,8 +143,10 @@ async def get_cash_flow(
 # Financial Statement
 @router.get("/earnings/{ticker}")
 async def get_earnings(
-    ticker: str,
-    limit: int = Query(5, description="Number of years and quarters to return"),
+    ticker: Ticker,
+    limit: int = Query(
+        5, ge=1, le=100, description="Number of years and quarters to return"
+    ),
 ):
     return await fetch_earnings(ticker, limit)
 
@@ -145,24 +165,26 @@ async def get_live_market_prices():
 
 # Financial Indicator
 @router.get("/sma/{ticker}")
-async def get_SMA(ticker: str):
+async def get_SMA(ticker: Ticker):
     return await fetch_SMA(ticker)
 
 
 # Financial Indicator
 @router.get("/ema/{ticker}")
-async def get_EMA(ticker: str):
+async def get_EMA(ticker: Ticker):
     return await fetch_EMA(ticker)
 
 
 @router.get("/all-stock-data/{ticker}")
-async def get_all_stock_data(ticker: str):
+async def get_all_stock_data(ticker: Ticker):
     return await fetch_all_stock_data(ticker)
 
 
 @router.get("/top-gainers-losers")
 async def get_top_gainers_losers(
-    limit: int = Query(5, description="Number of gainers and losers to return")
+    limit: int = Query(
+        5, ge=1, le=100, description="Number of gainers and losers to return"
+    )
 ):
     return await fetch_top_gainers_losers(limit)
 

@@ -25,7 +25,6 @@ RUN groupadd -r appgroup && useradd -r -g appgroup -u 1001 appuser
 
 # Copy application code and set ownership
 COPY --chown=appuser:appgroup src/ ./src
-COPY --chown=appuser:appgroup config.py .
 
 # Switch to non-root user
 USER appuser

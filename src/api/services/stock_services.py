@@ -1,32 +1,23 @@
 import asyncio
 import logging
-import os
 import time
 from datetime import datetime, timedelta
 
 import requests
 from alpha_vantage.timeseries import TimeSeries
 from cachetools import TTLCache
-from dotenv import load_dotenv
 from fastapi import HTTPException
 from motor.motor_asyncio import AsyncIOMotorClient
 
 from src.api.models.stock_models import StockHistoricalData, StockMetadata
+from src.core.config import settings
 from src.infrastructure.database.mongoDB.database import database
 
-# Load environment variables from .env file
-load_dotenv()
-
-# Load Alpha Vantage API key from environment variable
-API_KEY = os.getenv("ALPHA_VANTAGE_API_KEY")
-# Only raise error if not in testing environment
-TESTING = os.getenv("TESTING", "").lower() in ("true", "1", "yes")
-if not API_KEY and not TESTING:
-    raise ValueError("Alpha Vantage API key is not set in environment variables.")
+API_KEY = settings.ALPHA_VANTAGE_API_KEY
 
 # MongoDB setup
-client: AsyncIOMotorClient = AsyncIOMotorClient(os.getenv("MONGODB_URI"))
-db = client.tradely
+client: AsyncIOMotorClient = AsyncIOMotorClient(settings.database_url)
+db = client[settings.MONGODB_DB_NAME]
 
 # Caches with a TTL of 1 hour and a max size of 100 items
 metadata_cache = TTLCache(maxsize=100, ttl=3600)

@@ -122,6 +122,20 @@ class TestNonExistentEndpoints:
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
+class TestStockRequestValidation:
+    """Tests for validation applied before stock service calls."""
+
+    def test_invalid_ticker_returns_422(self, test_client):
+        response = test_client.get("/api/v1/stocks/metadata/not%20a%20ticker")
+
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+    def test_news_limit_must_be_within_bounds(self, test_client):
+        response = test_client.get("/api/v1/stocks/news/AAPL?limit=0")
+
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+
 # 🎓 LEARNING EXERCISE: Testing with different HTTP methods
 
 

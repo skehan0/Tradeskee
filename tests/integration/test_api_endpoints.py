@@ -11,8 +11,12 @@ Learning concepts:
 - Using fixtures from conftest.py
 """
 
+from unittest.mock import AsyncMock
+
 import pytest
 from fastapi import status
+
+from src.infrastructure.database.mongoDB.database import database
 
 
 class TestRootEndpoint:
@@ -134,6 +138,29 @@ class TestStockRequestValidation:
         response = test_client.get("/api/v1/stocks/news/AAPL?limit=0")
 
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+
+class TestDatabaseStatusEndpoint:
+    """Tests for the database status endpoint without a live database call."""
+
+    def test_status_returns_database_collections(self, test_client, monkeypatch):
+        database_handle = AsyncMock()
+        database_handle.list_collection_names.return_value = [
+            "stock_metadata",
+            "historical_data",
+        ]
+        get_db = AsyncMock(return_value=database_handle)
+        monkeypatch.setattr(database, "get_db", get_db)
+
+        response = test_client.get("/api/v1/stocks/status")
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json() == {
+            "status": "Connected successfully!",
+            "collections": ["stock_metadata", "historical_data"],
+        }
+        get_db.assert_awaited_once_with()
+        database_handle.list_collection_names.assert_awaited_once_with()
 
 
 # LEARNING EXERCISE: Testing with different HTTP methods

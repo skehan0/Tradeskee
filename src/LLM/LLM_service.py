@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 from fastapi import HTTPException
 from motor.motor_asyncio import AsyncIOMotorClient
 
+from src.core.config import settings
 from src.feature.logging import StdoutLoggingService, build_app_logger
 from src.utils.streaming_utils import process_streaming_response
 from src.utils.validate_stock_data_utils import validate_stock_data
@@ -231,20 +232,26 @@ def perform_analysis(stock_data: dict) -> str:
     return analysis
 
 
-async def send_prompt_to_llm(prompt: str, model="gemma3:4b") -> str:
+async def send_prompt_to_agent00(prompt: str, model: Optional[str] = None) -> str:
     """
     Send the formatted prompt to the LLM asynchronously and return the response.
     """
-    url = os.getenv("LLM_API_URL", "http://localhost:11434/api/chat")
-    payload = {"model": model, "messages": [{"role": "user", "content": prompt}]}
+    selected_model = model or settings.OLLAMA_MODEL
+    url = f"{settings.OLLAMA_BASE_URL.rstrip('/')}/api/chat"
+    payload = {
+        "model": selected_model,
+        "messages": [{"role": "user", "content": prompt}],
+    }
 
-    logger.info("Sending prompt to LLM", model=model, url=url)
+    logger.info("Sending prompt to LLM: %s (%s)", selected_model, url)
     try:
         async with httpx.AsyncClient() as client:
-            response = await client.post(url, json=payload, timeout=1000.0)
+            response = await client.post(
+                url, json=payload, timeout=settings.LLM_TIMEOUT
+            )
 
             if response.status_code == 200:
-                logger.info("LLM response received successfully", model=model)
+                logger.info("LLM response received successfully: %s", selected_model)
                 llm_response = ""
                 async for content in process_streaming_response(response):
                     # Print each chunk as it arrives
@@ -253,26 +260,29 @@ async def send_prompt_to_llm(prompt: str, model="gemma3:4b") -> str:
                 return llm_response
             else:
                 logger.error(
-                    "LLM request failed", status_code=response.status_code, model=model
+                    "LLM request failed: %s (%s)", response.status_code, selected_model
                 )
                 raise RuntimeError(f"Error {response.status_code}: {response.text}")
     except httpx.RequestError as e:
-        logger.error("HTTP request to LLM failed", error=str(e), model=model)
+        logger.error("HTTP request to LLM failed: %s (%s)", e, selected_model)
         raise RuntimeError(f"HTTP request failed: {str(e)}")
     except Exception as e:
-        logger.error("Failed to send prompt to LLM", error=str(e), model=model)
+        logger.error("Failed to send prompt to LLM: %s (%s)", e, selected_model)
         raise RuntimeError(f"Failed to send prompt to LLM: {str(e)}")
 
 
-async def send_to_deepseek(llm_response, stock_data=None, model="deepseek-r1:1.5b"):
+async def send_to_agent01(
+    llm_response, stock_data=None, model: Optional[str] = None
+):
     """
-    Send the LLM response to the DeepThinking model for final analysis.
+    Send the agent00 response to agent01 for final analysis.
     """
     print("Debug: llm_response", llm_response)
     print("Debug: stock_data", stock_data)
-    url = "http://localhost:11434/api/chat"
+    selected_model = model or settings.OLLAMA_MODEL
+    url = f"{settings.OLLAMA_BASE_URL.rstrip('/')}/api/chat"
     payload = {
-        "model": model,
+        "model": selected_model,
         "messages": [
             {
                 "role": "user",
@@ -282,7 +292,7 @@ async def send_to_deepseek(llm_response, stock_data=None, model="deepseek-r1:1.5
             Instructions:
             - You are a professional financial analyst with expertise in equity markets, technical indicators, and industry trends.
             - Conduct a deep analysis of the stock using the data provided. 
-            - Review the Gemini-generated analysis {llm_response} and incorporate relevant parts if they align with the deeper analysis.
+            - Review the agent00-generated analysis and incorporate relevant parts if they align with the deeper analysis.
             - Present a structured, professional-level report suitable for senior financial officers, using bullet points where appropriate.
             - Ensure that the analysis is unbiased and provides a well-rounded view with insights into the market’s current position and future performance.
 
@@ -325,28 +335,34 @@ async def send_to_deepseek(llm_response, stock_data=None, model="deepseek-r1:1.5
         async with httpx.AsyncClient() as client:
             # Stream the response
             async with client.stream(
-                "POST", url, json=payload, timeout=200.0
+                "POST", url, json=payload, timeout=settings.LLM_TIMEOUT
             ) as response:
                 if response.status_code == 200:
                     # Process the response using process_streaming_response
-                    deepthinking_response = ""
+                    agent01_response = ""
                     async for content in process_streaming_response(response):
                         # Print each chunk as it arrives
                         print(content, end="", flush=True)
-                        deepthinking_response += content
-                    return deepthinking_response
+                        agent01_response += content
+                    return agent01_response
                 else:
-                    print(
-                        f"Debug: DeepThinking API response status: {response.status_code}"
+                    response_body = await response.aread()
+                    response_text = response_body.decode(
+                        response.encoding or "utf-8", errors="replace"
                     )
-                    print(f"Debug: DeepThinking API response text: {response.text}")
-                    raise RuntimeError(f"Error {response.status_code}: {response.text}")
+                    print(
+                        f"Debug: agent01 API response status: {response.status_code}"
+                    )
+                    print(f"Debug: agent01 API response text: {response_text}")
+                    raise RuntimeError(
+                        f"Error {response.status_code}: {response_text}"
+                    )
     except httpx.RequestError as e:
         print(f"Debug: HTTP request error: {str(e)}")
-        raise RuntimeError(f"Failed to send data to DeepThinking model: {str(e)}")
+        raise RuntimeError(f"Failed to send data to agent01: {str(e)}")
     except Exception as e:
         print(f"Debug: General exception: {str(e)}")
-        raise RuntimeError(f"Failed to send data to DeepThinking model: {str(e)}")
+        raise RuntimeError(f"Failed to send data to agent01: {str(e)}")
 
 
 def store_analysis(symbol, analysis):
@@ -362,7 +378,7 @@ def store_analysis(symbol, analysis):
 
 async def fetch_and_analyze_all_stock_data(ticker: str):
     try:
-        logger.info("Starting stock analysis", ticker=ticker)
+        logger.info("Starting stock analysis: %s", ticker)
         print(f"Debug: Fetching and analyzing stock data for ticker: {ticker}")
         # Import the stock service here to avoid heavy top-level imports during tests
         from src.api.services.stock_services import fetch_all_stock_data
@@ -370,17 +386,17 @@ async def fetch_and_analyze_all_stock_data(ticker: str):
         # Fetch real stock data using the stock services
         stock_data = validate_stock_data(await fetch_all_stock_data(ticker))
         logger.debug(
-            "Stock data fetched",
-            ticker=ticker,
-            has_metadata=bool(stock_data.get("metadata")),
+            "Stock data fetched: %s (has_metadata=%s)",
+            ticker,
+            bool(stock_data.get("metadata")),
         )
         print("Debug: Fetched stock data:", stock_data)
 
         if not stock_data or "metadata" not in stock_data:
             print("Debug: No stock data available, using default analysis.")
             analysis = "No stock data available for analysis."
-            llm_response = "No stock data available for analysis."
-            deepthinking_response = "No stock data available for analysis."
+            agent00_response = "No stock data available for analysis."
+            agent01_response = "No stock data available for analysis."
         else:
             # Perform analysis on the fetched stock data
             metadata = stock_data["metadata"]
@@ -390,18 +406,18 @@ async def fetch_and_analyze_all_stock_data(ticker: str):
             print("Debug: Analysis result:", analysis)
 
             # Generate LLM response
-            llm_response = await send_prompt_to_llm(analysis)
-            print("Debug: LLM response:", llm_response)
+            agent00_response = await send_prompt_to_agent00(analysis)
+            print("Debug: agent00 response:", agent00_response)
 
-            # Generate DeepThinking response
-            deepthinking_response = await send_to_deepseek(llm_response, stock_data)
-            print("Debug: DeepThinking response:", deepthinking_response)
+            # Generate agent01 response
+            agent01_response = await send_to_agent01(agent00_response, stock_data)
+            print("Debug: agent01 response:", agent01_response)
 
         return {
             "symbol": ticker,
             "analysis": analysis,
-            "llm_response": llm_response,
-            "deepthinking_response": deepthinking_response,
+            "agent00_response": agent00_response,
+            "agent01_response": agent01_response,
             "stock_data": stock_data,
         }
     except Exception as e:
@@ -428,10 +444,10 @@ async def process_question_with_llm(
         print(f"Debug: Constructed prompt: {prompt}")
 
         # Send the prompt to the LLM
-        llm_response = await send_prompt_to_llm(prompt)
+        agent00_response = await send_prompt_to_agent00(prompt)
 
-        print(f"Debug: LLM response: {llm_response}")
-        return llm_response
+        print(f"Debug: agent00 response: {agent00_response}")
+        return agent00_response
     except Exception as e:
         print(f"Error in process_question_with_llm: {e}")
         raise HTTPException(

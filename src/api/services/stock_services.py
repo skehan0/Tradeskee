@@ -6,17 +6,12 @@ from datetime import datetime, timedelta
 import httpx
 from cachetools import TTLCache
 from fastapi import HTTPException
-from motor.motor_asyncio import AsyncIOMotorClient
 
 from src.api.models.stock_models import StockHistoricalData, StockMetadata
 from src.core.config import settings
 from src.infrastructure.database.mongoDB.database import database
 
 API_KEY = settings.ALPHA_VANTAGE_API_KEY
-
-# MongoDB setup
-client: AsyncIOMotorClient = AsyncIOMotorClient(settings.database_url)
-db = client.get_database(settings.MONGODB_DB_NAME)
 
 # Caches with a TTL of 1 hour and a max size of 100 items
 metadata_cache = TTLCache(maxsize=100, ttl=3600)
@@ -154,8 +149,9 @@ async def fetch_stock_metadata(ticker: str):
     if ticker in metadata_cache:
         return metadata_cache[ticker]
 
-    url = f"https://www.alphavantage.co/query?function=OVERVIEW&symbol={ticker}&apikey={API_KEY}"
+    url = f"https://www.alphavantage.co/query?function=OVERVIEW&symbol={ticker}&apikey={API_KEY}" # switched to a premium endpoint
     data = await make_request(url)
+    db = await database.get_db()
 
     metadata = {
         "ticker": ticker,
@@ -198,6 +194,7 @@ async def fetch_historical_data(ticker: str, limit: int = 5):
         return cached_data
 
     # Check if historical data is already stored in the database
+    db = await database.get_db()
     existing_data = await db.historical_data.find_one({"ticker": ticker})
     if existing_data:
         existing_data["_id"] = str(existing_data["_id"])
@@ -327,6 +324,7 @@ async def fetch_income_statement(ticker: str, limit: int = 1):
         return income_statement_cache[cache_key]
 
     # Check if income statement is already stored in the database
+    db = await database.get_db()
     existing_income_statement = await db.income_statement.find_one({"ticker": ticker})
     if existing_income_statement:
         existing_income_statement["_id"] = str(existing_income_statement["_id"])
@@ -361,6 +359,7 @@ async def fetch_balance_sheet(ticker: str, limit: int = 1):
         return balance_sheet_cache[cache_key]
 
     # Check if balance sheet is already stored in the database
+    db = await database.get_db()
     existing_balance_sheet = await db.balance_sheet.find_one({"ticker": ticker})
     if existing_balance_sheet:
         existing_balance_sheet["_id"] = str(existing_balance_sheet["_id"])
@@ -394,14 +393,15 @@ async def fetch_cash_flow(ticker: str, limit: int = 1):
     if cache_key in cash_flow_cache:
         return cash_flow_cache[cache_key]
 
-    url = f"https://www.alphavantage.co/query?function=CASH_FLOW&symbol={ticker}&apikey={API_KEY}"
-    data = await make_request(url)
-
     # Check if cash flow is already stored in the database
+    db = await database.get_db()
     existing_cash_flow = await db.cash_flow.find_one({"ticker": ticker})
     if existing_cash_flow:
         existing_cash_flow["_id"] = str(existing_cash_flow["_id"])
         return existing_cash_flow
+
+    url = f"https://www.alphavantage.co/query?function=CASH_FLOW&symbol={ticker}&apikey={API_KEY}"
+    data = await make_request(url)
 
     # Process the data to limit the number of cash flows
     limited_data = {
@@ -429,6 +429,7 @@ async def fetch_earnings(ticker: str, limit: int = 1):
         return earnings_cache[cache_key]
 
     # Check if earnings are already stored in the database
+    db = await database.get_db()
     existing_earnings = await db.earnings.find_one({"ticker": ticker})
     if existing_earnings:
         existing_earnings["_id"] = str(existing_earnings["_id"])

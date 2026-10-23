@@ -2,6 +2,8 @@
 Tradeskee API - Main application entry point.
 """
 
+from contextlib import asynccontextmanager
+
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -9,6 +11,18 @@ from fastapi.responses import JSONResponse
 
 from src.api.routes import stock_routes  # Only stock routes for now
 from src.core.config import settings
+from src.infrastructure.database.mongoDB.database import database
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    """Manage shared application resources for the process lifetime."""
+    await database.connect()
+    try:
+        yield
+    finally:
+        await database.disconnect()
+
 
 # Create FastAPI application
 app = FastAPI(
@@ -19,6 +33,7 @@ app = FastAPI(
     redoc_url=f"{settings.API_V1_PREFIX}/redoc",
     openapi_url=f"{settings.API_V1_PREFIX}/openapi.json",
     debug=settings.DEBUG,
+    lifespan=lifespan,
 )
 
 # Configure CORS

@@ -1,22 +1,17 @@
 import asyncio
 import logging
 import time
-from datetime import datetime, timedelta
+from datetime import UTC, datetime
 
 import httpx
 from cachetools import TTLCache
 from fastapi import HTTPException
-from motor.motor_asyncio import AsyncIOMotorClient
 
 from src.api.models.stock_models import StockHistoricalData, StockMetadata
 from src.core.config import settings
 from src.infrastructure.database.mongoDB.database import database
 
 API_KEY = settings.ALPHA_VANTAGE_API_KEY
-
-# MongoDB setup
-client: AsyncIOMotorClient = AsyncIOMotorClient(settings.database_url)
-db = client.get_database(settings.MONGODB_DB_NAME)
 
 # Caches with a TTL of 1 hour and a max size of 100 items
 metadata_cache = TTLCache(maxsize=100, ttl=3600)
@@ -55,7 +50,7 @@ async def make_request(url: str, retries: int = 3, backoff_factor: float = 0.5):
                 detail="Unable to reach the market data provider.",
             ) from error
 
-        retryable = response.status_code == 429 or response.status_code >= 500
+        retryable = response.status_code >= 500
         if retryable and attempt < retries - 1:
             await asyncio.sleep(backoff_factor * (2**attempt))
             continue
@@ -82,6 +77,21 @@ async def make_request(url: str, retries: int = 3, backoff_factor: float = 0.5):
             raise HTTPException(status_code=404, detail=data["Error Message"])
         if "Note" in data:
             raise HTTPException(status_code=429, detail=data["Note"])
+        if "Information" in data:
+            information = data["Information"]
+            information_lower = information.lower()
+            if any(
+                phrase in information_lower
+                for phrase in (
+                    "rate limit",
+                    "requests per second",
+                    "requests per day",
+                    "free key",
+                    "spread out your free api requests",
+                )
+            ):
+                raise HTTPException(status_code=429, detail=information)
+            raise HTTPException(status_code=503, detail=information)
         return data
 
     raise HTTPException(
@@ -89,19 +99,107 @@ async def make_request(url: str, retries: int = 3, backoff_factor: float = 0.5):
     )
 
 
+async def make_fmp_request(path: str, params: dict[str, str | int]) -> object:
+    """Fetch a JSON response from FMP using header-based authentication."""
+    if not settings.FMP_API_KEY:
+        raise HTTPException(
+            status_code=503, detail="Financial Modeling Prep API key is not configured."
+        )
+
+    for attempt in range(3):
+        try:
+            timeout = httpx.Timeout(settings.ALPHA_VANTAGE_TIMEOUT)
+            async with httpx.AsyncClient(timeout=timeout) as client:
+                response = await client.get(
+                    f"{settings.FMP_BASE_URL}{path}",
+                    params=params,
+                    headers={"apikey": settings.FMP_API_KEY},
+                )
+        except httpx.RequestError as error:
+            if attempt < 2:
+                await asyncio.sleep(0.5 * (2**attempt))
+                continue
+            raise HTTPException(
+                status_code=502, detail="Unable to reach the FMP provider."
+            ) from error
+
+        if response.status_code == 429:
+            raise HTTPException(status_code=429, detail="FMP rate limit exceeded.")
+        if response.status_code >= 500 and attempt < 2:
+            await asyncio.sleep(0.5 * (2**attempt))
+            continue
+        if response.status_code >= 400:
+            raise HTTPException(status_code=502, detail="FMP provider request failed.")
+
+        try:
+            data = response.json()
+        except ValueError as error:
+            raise HTTPException(
+                status_code=502, detail="FMP provider returned invalid JSON."
+            ) from error
+
+        if isinstance(data, dict) and any(
+            key in data for key in ("Error Message", "error", "Error")
+        ):
+            raise HTTPException(
+                status_code=502, detail="FMP provider returned an error."
+            )
+        return data
+
+    raise HTTPException(status_code=502, detail="FMP provider failed after retries.")
+
+
+async def resolve_symbol(ticker: str) -> dict:
+    """Resolve a ticker through FMP before requesting security data."""
+    data = await make_fmp_request("/search-symbol", {"query": ticker})
+    if not isinstance(data, list) or not data:
+        raise HTTPException(
+            status_code=404, detail=f"No security was found for ticker {ticker}."
+        )
+
+    matches = [
+        item for item in data if str(item.get("symbol", "")).upper() == ticker.upper()
+    ]
+    match = matches[0] if matches else data[0]
+    return {
+        "ticker": str(match.get("symbol", ticker)).upper(),
+        "name": match.get("name") or match.get("companyName"),
+        "exchange": match.get("exchangeShortName") or match.get("exchange"),
+        "exchange_full_name": match.get("exchangeFullName"),
+        "currency": match.get("currency"),
+    }
+
+
+async def fetch_current_quote(ticker: str) -> dict:
+    """Fetch the latest quote from FMP."""
+    data = await make_fmp_request("/quote", {"symbol": ticker})
+    if not isinstance(data, list) or not data:
+        raise HTTPException(status_code=502, detail="FMP returned no quote data.")
+    return data[0]
+
+
 async def fetch_all_stock_data(ticker: str):
     """
     Fetch all relevant stock data by calling multiple endpoints.
     """
     try:
+        resolved = await resolve_symbol(ticker)
+        ticker = resolved["ticker"]
         # Step 1: Fetch metadata
         metadata = await fetch_stock_metadata(ticker)
+        metadata["resolution"] = resolved
 
         # Step 2: Fetch historical data
         historical_data = await fetch_historical_data(ticker)
 
         # Step 3: Fetch news headlines
-        news = await fetch_news_headlines(ticker)
+        try:
+            news = await fetch_news_headlines(ticker)
+            news_status = "available" if news else "unavailable"
+        except HTTPException as error:
+            logger.warning("News unavailable for %s: %s", ticker, error.detail)
+            news = []
+            news_status = "unavailable"
 
         # Step 4: Fetch income statement
         income_statement = await fetch_income_statement(ticker)
@@ -115,30 +213,33 @@ async def fetch_all_stock_data(ticker: str):
         # Step 7: Fetch earnings
         earnings = await fetch_earnings(ticker)
 
+        metrics = await fetch_financial_metrics(ticker)
+
         # Step 8: Fetch SMA (Simple Moving Average)
         sma = await fetch_SMA(ticker)
 
         # Step 9: Fetch EMA (Exponential Moving Average)
         ema = await fetch_EMA(ticker)
 
-        # Step 10: Fetch live market prices
-        live_market_prices = await fetch_live_market_prices()
-
-        # Step 11: Consolidate all data into a single dictionary
+        # Step 10: Consolidate the analysis datasets
         consolidated_data = {
             "metadata": metadata,
             "historical_data": historical_data,
             "news": news,
+            "news_status": news_status,
             "income_statement": income_statement,
             "balance_sheet": balance_sheet,
             "cash_flow": cash_flow,
             "earnings": earnings,
+            "financial_metrics": metrics,
             "sma": sma,
             "ema": ema,
         }
 
         return consolidated_data
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Failed to fetch all stock data for {ticker}: {str(e)}")
         raise HTTPException(
@@ -154,25 +255,60 @@ async def fetch_stock_metadata(ticker: str):
     if ticker in metadata_cache:
         return metadata_cache[ticker]
 
-    url = f"https://www.alphavantage.co/query?function=OVERVIEW&symbol={ticker}&apikey={API_KEY}"
-    data = await make_request(url)
+    if not settings.FMP_API_KEY:
+        raise HTTPException(
+            status_code=503, detail="Financial Modeling Prep API key is not configured."
+        )
+
+    data = await make_fmp_request("/profile", {"symbol": ticker})
+    if not isinstance(data, list) or not data:
+        raise HTTPException(
+            status_code=502,
+            detail="Financial Modeling Prep returned no company profile data.",
+        )
+    profile = data[0]
+    quote = await fetch_current_quote(ticker)
+    price_range = profile.get("range", "")
+    range_low = None
+    range_high = None
+    if isinstance(price_range, str) and "-" in price_range:
+        low_value, high_value = price_range.split("-", 1)
+        try:
+            range_low = float(low_value)
+            range_high = float(high_value)
+        except ValueError:
+            logger.warning("Invalid FMP price range for %s: %s", ticker, price_range)
+    db = await database.get_db()
 
     metadata = {
         "ticker": ticker,
-        "industry": data.get("Industry", "N/A"),
-        "market_cap": data.get("MarketCapitalization", "N/A"),
-        "dividend_yield": data.get("DividendYield", "N/A"),
-        "pe_ratio": data.get("PERatio", "N/A"),
-        "eps": data.get("EPS", "N/A"),
-        "beta": data.get("Beta", "N/A"),
-        "52_week_high": data.get("52WeekHigh", "N/A"),
-        "52_week_low": data.get("52WeekLow", "N/A"),
-        "current_price": data.get("50DayMovingAverage", "N/A"),
-        "analyst_ratings": data.get("AnalystTargetPrice", "N/A"),
-        "price_targets": data.get("AnalystTargetPrice", "N/A"),
-        "events": data.get("QuarterlyEarningsGrowthYOY", "N/A"),
-        f"about_{ticker}": data.get("Description", "N/A"),
-        "last_updated": datetime.utcnow(),
+        "name": profile.get("companyName"),
+        "sector": profile.get("sector"),
+        "industry": profile.get("industry"),
+        "market_cap": profile.get("marketCap"),
+        "dividend_yield": profile.get("lastDividend"),
+        "pe_ratio": None,
+        "eps": None,
+        "beta": profile.get("beta"),
+        "52_week_high": range_high,
+        "52_week_low": range_low,
+        "current_price": quote.get("price", profile.get("price")),
+        "change": quote.get("change"),
+        "change_percentage": quote.get("changePercentage"),
+        "volume": quote.get("volume"),
+        "quote_timestamp": quote.get("timestamp"),
+        "analyst_ratings": None,
+        "price_targets": None,
+        "events": None,
+        "description": profile.get("description"),
+        "exchange": profile.get("exchange"),
+        "exchange_full_name": profile.get("exchangeFullName"),
+        "currency": profile.get("currency"),
+        "is_etf": profile.get("isEtf", False),
+        "is_fund": profile.get("isFund", False),
+        "is_adr": profile.get("isAdr", False),
+        "is_actively_trading": profile.get("isActivelyTrading"),
+        "last_updated": datetime.now(UTC),
     }
 
     # Store in MongoDB (overwrite existing data)
@@ -193,11 +329,12 @@ async def fetch_historical_data(ticker: str, limit: int = 5):
     """
     if ticker in historical_data_cache:
         # Return limited data from the cache
-        cached_data = historical_data_cache[ticker]
+        cached_data = historical_data_cache[ticker].copy()
         cached_data["historical_data"] = cached_data["historical_data"][:limit]
         return cached_data
 
     # Check if historical data is already stored in the database
+    db = await database.get_db()
     existing_data = await db.historical_data.find_one({"ticker": ticker})
     if existing_data:
         existing_data["_id"] = str(existing_data["_id"])
@@ -206,26 +343,31 @@ async def fetch_historical_data(ticker: str, limit: int = 5):
         return existing_data
 
     try:
-        url = (
-            f"{settings.ALPHA_VANTAGE_BASE_URL}?function=TIME_SERIES_WEEKLY_ADJUSTED"
-            f"&symbol={ticker}&apikey={API_KEY}"
+        data = await make_fmp_request(
+            "/historical-price-eod/full", {"symbol": ticker, "limit": limit}
         )
-        data = await make_request(url)
-        time_series = data.get("Weekly Adjusted Time Series", {})
+        if not isinstance(data, list):
+            raise HTTPException(
+                status_code=502, detail="FMP returned no price history."
+            )
 
-        # Extract relevant details and limit the number of entries
         cleaned_data = [
             {
-                "date": date,
-                "open": values["1. open"],
-                "high": values["2. high"],
-                "low": values["3. low"],
-                "close": values["4. close"],
-                "adjusted_close": values["5. adjusted close"],
-                "volume": values["6. volume"],
-                "dividend_amount": values["7. dividend amount"],
+                "date": item.get("date"),
+                "open": item.get("open"),
+                "high": item.get("high"),
+                "low": item.get("low"),
+                "close": item.get("close"),
+                "adjusted_close": item.get("adjClose", item.get("close")),
+                "volume": item.get("volume"),
+                "vwap": item.get("vwap"),
             }
-            for date, values in time_series.items()
+            for item in data
+            if item.get("date")
+            and all(
+                item.get(field) is not None
+                for field in ("open", "high", "low", "close", "volume")
+            )
         ][
             :limit
         ]  # Apply the limit here
@@ -233,20 +375,20 @@ async def fetch_historical_data(ticker: str, limit: int = 5):
         historical_data = {
             "ticker": ticker,
             "historical_data": cleaned_data,
-            "last_updated": datetime.utcnow(),
+            "last_updated": datetime.now(UTC),
         }
 
-        # Store in MongoDB
-        await db.historical_data.update_one(
-            {"ticker": ticker}, {"$set": historical_data}, upsert=True
-        )
-        logger.info(f"Stored historical data for {ticker} in database")
-
-        # Update cache
-        historical_data_cache[ticker] = historical_data
+        if cleaned_data:
+            await db.historical_data.update_one(
+                {"ticker": ticker}, {"$set": historical_data}, upsert=True
+            )
+            logger.info(f"Stored historical data for {ticker} in database")
+            historical_data_cache[ticker] = historical_data
 
         return historical_data
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Failed to fetch historical data for {ticker}: {str(e)}")
         raise HTTPException(
@@ -263,22 +405,21 @@ async def fetch_news_headlines(ticker: str, limit: int = 3):
     if cache_key in news_cache:
         return news_cache[cache_key]
 
-    url = f"https://www.alphavantage.co/query?function=NEWS_SENTIMENT&tickers={ticker}&apikey={API_KEY}&sort=RELEVANCE"
-
-    data = await make_request(url)
-
-    news_data = data.get("feed", [])
+    data = await make_fmp_request(
+        "/news/stock", {"symbols": ticker, "page": 0, "limit": limit}
+    )
+    news_data = data if isinstance(data, list) else []
 
     cleaned_news = [
         {
             "article": index + 1,
             "title": item.get("title", "N/A"),
-            "summary": item.get("summary", "N/A"),
-            "pubDate": item.get("time_published", "N/A"),
+            "summary": item.get("text", "N/A"),
+            "pubDate": item.get("publishedDate", "N/A"),
             "url": item.get("url", "N/A"),
-            "thumbnail": item.get("banner_image", "N/A"),
-            "sentimentScore": item.get("overall_sentiment_score", "N/A"),
-            "sentimentLabel": item.get("overall_sentiment_label", "N/A"),
+            "thumbnail": item.get("image", "N/A"),
+            "sentimentScore": None,
+            "sentimentLabel": "N/A",
         }
         for index, item in enumerate(news_data[:limit])
     ]
@@ -327,26 +468,31 @@ async def fetch_income_statement(ticker: str, limit: int = 1):
         return income_statement_cache[cache_key]
 
     # Check if income statement is already stored in the database
+    db = await database.get_db()
     existing_income_statement = await db.income_statement.find_one({"ticker": ticker})
     if existing_income_statement:
         existing_income_statement["_id"] = str(existing_income_statement["_id"])
         return existing_income_statement
 
-    url = f"https://www.alphavantage.co/query?function=INCOME_STATEMENT&symbol={ticker}&apikey={API_KEY}"
-    data = await make_request(url)
+    data = await make_fmp_request(
+        "/income-statement", {"symbol": ticker, "limit": limit}
+    )
+    if not isinstance(data, list):
+        raise HTTPException(
+            status_code=502, detail="FMP returned no income statements."
+        )
 
     # Process the data to limit the number of statements
     limited_data = {
         "ticker": ticker,
-        "annual_reports": data.get("annualReports", [])[:limit],
-        # "quarterly_reports": data.get("quarterlyReports", [])[:limit]
+        "annual_reports": data[:limit],
     }
 
-    # Store in MongoDB
-    await db.income_statement.update_one(
-        {"ticker": ticker}, {"$set": limited_data}, upsert=True
-    )
-    logger.info(f"Stored income statement for {ticker} in database")
+    if limited_data["annual_reports"]:
+        await db.income_statement.update_one(
+            {"ticker": ticker}, {"$set": limited_data}, upsert=True
+        )
+        logger.info(f"Stored income statement for {ticker} in database")
 
     # Cache the result
     income_statement_cache[cache_key] = limited_data
@@ -361,26 +507,29 @@ async def fetch_balance_sheet(ticker: str, limit: int = 1):
         return balance_sheet_cache[cache_key]
 
     # Check if balance sheet is already stored in the database
+    db = await database.get_db()
     existing_balance_sheet = await db.balance_sheet.find_one({"ticker": ticker})
     if existing_balance_sheet:
         existing_balance_sheet["_id"] = str(existing_balance_sheet["_id"])
         return existing_balance_sheet
 
-    url = f"https://www.alphavantage.co/query?function=BALANCE_SHEET&symbol={ticker}&apikey={API_KEY}"
-    data = await make_request(url)
+    data = await make_fmp_request(
+        "/balance-sheet-statement", {"symbol": ticker, "limit": limit}
+    )
+    if not isinstance(data, list):
+        raise HTTPException(status_code=502, detail="FMP returned no balance sheets.")
 
     # Process the data to limit the number of balance sheets
     limited_data = {
         "ticker": ticker,
-        "annual_reports": data.get("annualReports", [])[:limit],
-        # "quarterly_reports": data.get("quarterlyReports", [])[:limit]
+        "annual_reports": data[:limit],
     }
 
-    # Store in MongoDB
-    await db.balance_sheet.update_one(
-        {"ticker": ticker}, {"$set": limited_data}, upsert=True
-    )
-    logger.info(f"Stored balance sheet for {ticker} in database")
+    if limited_data["annual_reports"]:
+        await db.balance_sheet.update_one(
+            {"ticker": ticker}, {"$set": limited_data}, upsert=True
+        )
+        logger.info(f"Stored balance sheet for {ticker} in database")
 
     # Cache the result
     balance_sheet_cache[cache_key] = limited_data
@@ -394,27 +543,32 @@ async def fetch_cash_flow(ticker: str, limit: int = 1):
     if cache_key in cash_flow_cache:
         return cash_flow_cache[cache_key]
 
-    url = f"https://www.alphavantage.co/query?function=CASH_FLOW&symbol={ticker}&apikey={API_KEY}"
-    data = await make_request(url)
-
     # Check if cash flow is already stored in the database
+    db = await database.get_db()
     existing_cash_flow = await db.cash_flow.find_one({"ticker": ticker})
     if existing_cash_flow:
         existing_cash_flow["_id"] = str(existing_cash_flow["_id"])
         return existing_cash_flow
 
+    data = await make_fmp_request(
+        "/cash-flow-statement", {"symbol": ticker, "limit": limit}
+    )
+    if not isinstance(data, list):
+        raise HTTPException(
+            status_code=502, detail="FMP returned no cash-flow statements."
+        )
+
     # Process the data to limit the number of cash flows
     limited_data = {
         "ticker": ticker,
-        "annual_reports": data.get("annualReports", [])[:limit],
-        # "quarterly_reports": data.get("quarterlyReports", [])[:limit]
+        "annual_reports": data[:limit],
     }
 
-    # Store in MongoDB
-    await db.cash_flow.update_one(
-        {"ticker": ticker}, {"$set": limited_data}, upsert=True
-    )
-    logger.info(f"Stored cash flow for {ticker} in database")
+    if limited_data["annual_reports"]:
+        await db.cash_flow.update_one(
+            {"ticker": ticker}, {"$set": limited_data}, upsert=True
+        )
+        logger.info(f"Stored cash flow for {ticker} in database")
 
     # Cache the result
     cash_flow_cache[cache_key] = limited_data
@@ -429,31 +583,44 @@ async def fetch_earnings(ticker: str, limit: int = 1):
         return earnings_cache[cache_key]
 
     # Check if earnings are already stored in the database
+    db = await database.get_db()
     existing_earnings = await db.earnings.find_one({"ticker": ticker})
     if existing_earnings:
         existing_earnings["_id"] = str(existing_earnings["_id"])
         return existing_earnings
 
-    url = f"https://www.alphavantage.co/query?function=EARNINGS&symbol={ticker}&apikey={API_KEY}"
-    data = await make_request(url)
+    data = await make_fmp_request("/earnings", {"symbol": ticker, "limit": limit})
+    if not isinstance(data, list):
+        raise HTTPException(status_code=502, detail="FMP returned no earnings data.")
 
     # Process the data to limit the number of earnings
     limited_data = {
         "ticker": ticker,
-        "annual_reports": data.get("annualReports", [])[:limit],
-        # "quarterly_reports": data.get("quarterlyReports", [])[:limit]
+        "annual_reports": data[:limit],
     }
 
-    # Store in MongoDB
-    await db.earnings.update_one(
-        {"ticker": ticker}, {"$set": limited_data}, upsert=True
-    )
-    logger.info(f"Stored earnings for {ticker} in database")
+    if limited_data["annual_reports"]:
+        await db.earnings.update_one(
+            {"ticker": ticker}, {"$set": limited_data}, upsert=True
+        )
+        logger.info(f"Stored earnings for {ticker} in database")
 
     # Cache the result
     earnings_cache[cache_key] = limited_data
 
     return limited_data
+
+
+async def fetch_financial_metrics(ticker: str, limit: int = 1):
+    """Fetch FMP key metrics and ratios for supplemental analysis."""
+    key_metrics = await make_fmp_request(
+        "/key-metrics", {"symbol": ticker, "limit": limit}
+    )
+    ratios = await make_fmp_request("/ratios", {"symbol": ticker, "limit": limit})
+    return {
+        "key_metrics": key_metrics if isinstance(key_metrics, list) else [],
+        "ratios": ratios if isinstance(ratios, list) else [],
+    }
 
 
 # Fetch SMA
@@ -476,12 +643,25 @@ async def fetch_SMA(
     if cache_key in sma_cache:
         return sma_cache[cache_key]
 
-    url = f"https://www.alphavantage.co/query?function=SMA&symbol={ticker}&interval={interval}&time_period={time_period}&series_type={series_type}&apikey={API_KEY}"
-    data = await make_request(url)
-    sma_data = data.get("Technical Analysis: SMA", {})
-
-    # Limit the data to the last 'limit' entries
-    limited_sma_data = dict(list(sma_data.items())[:limit])
+    data = await make_fmp_request(
+        "/historical-price-eod/full",
+        {"symbol": ticker, "limit": time_period + limit - 1},
+    )
+    prices = (
+        [
+            (item.get("date"), item.get("close"))
+            for item in data
+            if item.get("date") and item.get("close") is not None
+        ]
+        if isinstance(data, list)
+        else []
+    )
+    limited_sma_data = {}
+    for index in range(len(prices) - time_period + 1):
+        window = [value for _, value in prices[index : index + time_period]]
+        limited_sma_data[prices[index][0]] = {"SMA": sum(window) / len(window)}
+        if len(limited_sma_data) == limit:
+            break
 
     # Cache the result
     sma_cache[cache_key] = limited_sma_data
@@ -511,12 +691,27 @@ async def fetch_EMA(
     if cache_key in ema_cache:
         return ema_cache[cache_key]
 
-    url = f"https://www.alphavantage.co/query?function=EMA&symbol={ticker}&interval={interval}&time_period={time_period}&series_type={series_type}&apikey={API_KEY}"
-    data = await make_request(url)
-    ema_data = data.get("Technical Analysis: EMA", {})
-
-    # Limit the data to the last 'limit' entries
-    limited_ema_data = dict(list(ema_data.items())[:limit])
+    data = await make_fmp_request(
+        "/historical-price-eod/full",
+        {"symbol": ticker, "limit": time_period + limit - 1},
+    )
+    prices = (
+        [
+            (item.get("date"), item.get("close"))
+            for item in data
+            if item.get("date") and item.get("close") is not None
+        ]
+        if isinstance(data, list)
+        else []
+    )
+    limited_ema_data: dict[str, dict[str, float]] = {}
+    if len(prices) >= time_period:
+        multiplier = 2 / (time_period + 1)
+        ema_value = sum(value for _, value in prices[-time_period:]) / time_period
+        for date, price in reversed(prices[:-time_period]):
+            ema_value = (price - ema_value) * multiplier + ema_value
+            if len(limited_ema_data) < limit:
+                limited_ema_data[date] = {"EMA": ema_value}
 
     # Cache the result
     ema_cache[cache_key] = limited_ema_data
@@ -602,7 +797,7 @@ async def fetch_live_market_prices():
 
 async def fetch_top_gainers_losers(limit: int = 5):
     """
-    Fetch the top gainers and losers from the Alpha Vantage API.
+    Fetch the top gainers and losers from the FMP API.
     If the API fails or returns no data, return mock data.
     """
     cache_key = f"top_gainers_losers_{limit}"

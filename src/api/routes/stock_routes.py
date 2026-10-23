@@ -1,7 +1,7 @@
 from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Path, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, BeforeValidator
 
 from src.api.services.stock_services import (
     fetch_all_stock_data,
@@ -31,6 +31,7 @@ router = APIRouter()
 logger = build_app_logger(handlers=[StdoutLoggingService()])
 Ticker = Annotated[
     str,
+    BeforeValidator(lambda value: value.upper()),
     Path(
         min_length=1,
         max_length=10,
@@ -54,32 +55,30 @@ async def analyze_all_stock_data(ticker: Ticker):
     """
     Endpoint to fetch all stock data, analyze it (stage 1), send it to the LLM to analyze (stage 2)
     """
-    logger.info("Stock analysis requested", ticker=ticker, endpoint="analyze_all")
+    logger.info("Stock analysis requested: %s", ticker)
     try:
         # Call the service function to fetch, analyze, and send data to the LLM
         result = await fetch_and_analyze_all_stock_data(ticker)
-        logger.info("Stock analysis completed", ticker=ticker)
+        logger.info("Stock analysis completed: %s", ticker)
         # Return the result
         return result
     except ValueError as e:
-        logger.error("Stock analysis failed - not found", ticker=ticker, error=str(e))
+        logger.error("Stock analysis failed - not found: %s: %s", ticker, e)
         raise HTTPException(status_code=404, detail=str(e))
     except RuntimeError as e:
-        logger.error(
-            "Stock analysis failed - runtime error", ticker=ticker, error=str(e)
-        )
+        logger.error("Stock analysis failed - runtime error: %s: %s", ticker, e)
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/metadata/{ticker}")
 async def get_stock_metadata(ticker: Ticker):
-    logger.debug("Stock metadata requested", ticker=ticker)
+    logger.debug("Stock metadata requested: %s", ticker)
     return await fetch_stock_metadata(ticker)
 
 
 @router.get("/historical/{ticker}")
 async def get_historical_data(ticker: Ticker):
-    logger.debug("Historical data requested", ticker=ticker)
+    logger.debug("Historical data requested: %s", ticker)
     return await fetch_historical_data(ticker)
 
 
@@ -159,7 +158,7 @@ async def get_live_market_prices():
         logger.debug("Live market prices fetched successfully")
         return data
     except Exception as e:
-        logger.error("Failed to fetch live market prices", error=str(e))
+        logger.error("Failed to fetch live market prices: %s", e)
         raise HTTPException(status_code=500, detail=str(e))
 
 

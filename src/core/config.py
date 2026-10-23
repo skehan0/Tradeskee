@@ -68,6 +68,10 @@ class Settings(BaseSettings):
     ALPHA_VANTAGE_TIMEOUT: float = Field(
         default=10.0, description="Alpha Vantage request timeout in seconds"
     )
+    FMP_API_KEY: Optional[str] = Field(
+        default=None, description="Financial Modeling Prep API key"
+    )
+    FMP_BASE_URL: str = "https://financialmodelingprep.com/stable"
 
     # LLM Settings
     OLLAMA_BASE_URL: str = Field(

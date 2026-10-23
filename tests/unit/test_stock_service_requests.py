@@ -105,6 +105,40 @@ async def test_make_request_maps_provider_error(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_make_request_maps_provider_entitlement_error(monkeypatch):
+    client = FakeAsyncClient(
+        FakeResponse(200, {"Information": "This endpoint requires a premium plan."})
+    )
+    monkeypatch.setattr(stock_services.httpx, "AsyncClient", lambda **kwargs: client)
+
+    with pytest.raises(HTTPException) as error:
+        await stock_services.make_request("https://provider.test", retries=1)
+
+    assert error.value.status_code == 503
+    assert "premium" in error.value.detail
+
+
+@pytest.mark.asyncio
+async def test_make_request_maps_provider_rate_limit_information_to_429(monkeypatch):
+    client = FakeAsyncClient(
+        FakeResponse(
+            200,
+            {
+                "Information": "Please spread out your free API requests more sparingly (1 request per second)."
+            },
+        )
+    )
+    monkeypatch.setattr(stock_services.httpx, "AsyncClient", lambda **kwargs: client)
+
+    with pytest.raises(HTTPException) as error:
+        await stock_services.make_request("https://provider.test", retries=3)
+
+    assert error.value.status_code == 429
+    assert "1 request per second" in error.value.detail
+    client.get.assert_awaited_once_with("https://provider.test")
+
+
+@pytest.mark.asyncio
 async def test_make_request_maps_network_failure(monkeypatch):
     client = FakeAsyncClient(error=httpx.ConnectError("connection failed"))
     monkeypatch.setattr(stock_services.httpx, "AsyncClient", lambda **kwargs: client)
@@ -113,3 +147,40 @@ async def test_make_request_maps_network_failure(monkeypatch):
         await stock_services.make_request("https://provider.test", retries=1)
 
     assert error.value.status_code == 502
+
+
+@pytest.mark.asyncio
+async def test_fmp_stock_news_maps_documented_response(monkeypatch):
+    stock_services.news_cache.clear()
+    database_response = [
+        {
+            "symbol": "NVDA",
+            "publishedDate": "2026-07-30 12:36:38",
+            "publisher": "CNBC Television",
+            "title": "NVIDIA update",
+            "image": "https://example.test/image.jpg",
+            "site": "youtube.com",
+            "text": "Verified NVIDIA market news.",
+            "url": "https://example.test/news",
+        }
+    ]
+    monkeypatch.setattr(
+        stock_services,
+        "make_fmp_request",
+        AsyncMock(return_value=database_response),
+    )
+
+    result = await stock_services.fetch_news_headlines("NVDA", limit=1)
+
+    assert result == [
+        {
+            "article": 1,
+            "title": "NVIDIA update",
+            "summary": "Verified NVIDIA market news.",
+            "pubDate": "2026-07-30 12:36:38",
+            "url": "https://example.test/news",
+            "thumbnail": "https://example.test/image.jpg",
+            "sentimentScore": None,
+            "sentimentLabel": "N/A",
+        }
+    ]

@@ -1,7 +1,7 @@
 import asyncio
 import logging
 import time
-from datetime import datetime, timedelta
+from datetime import UTC, datetime
 
 import httpx
 from cachetools import TTLCache
@@ -308,7 +308,7 @@ async def fetch_stock_metadata(ticker: str):
         "is_fund": profile.get("isFund", False),
         "is_adr": profile.get("isAdr", False),
         "is_actively_trading": profile.get("isActivelyTrading"),
-        "last_updated": datetime.utcnow(),
+        "last_updated": datetime.now(UTC),
     }
 
     # Store in MongoDB (overwrite existing data)
@@ -375,7 +375,7 @@ async def fetch_historical_data(ticker: str, limit: int = 5):
         historical_data = {
             "ticker": ticker,
             "historical_data": cleaned_data,
-            "last_updated": datetime.utcnow(),
+            "last_updated": datetime.now(UTC),
         }
 
         if cleaned_data:

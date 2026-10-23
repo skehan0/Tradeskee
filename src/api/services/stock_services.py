@@ -3,8 +3,7 @@ import logging
 import time
 from datetime import datetime, timedelta
 
-import requests
-from alpha_vantage.timeseries import TimeSeries
+import httpx
 from cachetools import TTLCache
 from fastapi import HTTPException
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -40,29 +39,53 @@ logger = logging.getLogger(__name__)
 # Helper function for API requests with retries
 async def make_request(url: str, retries: int = 3, backoff_factor: float = 0.5):
     """
-    Handles API requests and rate limit errors with retries
-        429 == rate limit exceeded
-        200 == success
-        Not 429 || 200 == HTTPException
-        500 == retry attempts fail
+    Fetch JSON from an upstream provider with bounded retries.
     """
     for attempt in range(retries):
-        response = requests.get(url)
-        if response.status_code == 429:
+        try:
+            timeout = httpx.Timeout(settings.ALPHA_VANTAGE_TIMEOUT)
+            async with httpx.AsyncClient(timeout=timeout) as client:
+                response = await client.get(url)
+        except httpx.RequestError as error:
             if attempt < retries - 1:
                 await asyncio.sleep(backoff_factor * (2**attempt))
                 continue
             raise HTTPException(
+                status_code=502,
+                detail="Unable to reach the market data provider.",
+            ) from error
+
+        retryable = response.status_code == 429 or response.status_code >= 500
+        if retryable and attempt < retries - 1:
+            await asyncio.sleep(backoff_factor * (2**attempt))
+            continue
+
+        if response.status_code == 429:
+            raise HTTPException(
                 status_code=429, detail="Rate limit exceeded. Please try again later."
             )
-        if response.status_code != 200:
+        if response.status_code >= 400:
             raise HTTPException(
-                status_code=response.status_code,
-                detail="Failed to fetch data from Alpha Vantage.",
+                status_code=502,
+                detail="Failed to fetch data from the market data provider.",
             )
-        return response.json()
+
+        try:
+            data = response.json()
+        except ValueError as error:
+            raise HTTPException(
+                status_code=502,
+                detail="Market data provider returned invalid JSON.",
+            ) from error
+
+        if "Error Message" in data:
+            raise HTTPException(status_code=404, detail=data["Error Message"])
+        if "Note" in data:
+            raise HTTPException(status_code=429, detail=data["Note"])
+        return data
+
     raise HTTPException(
-        status_code=500, detail="Failed to fetch data after multiple attempts."
+        status_code=502, detail="Market data provider failed after multiple attempts."
     )
 
 
@@ -183,8 +206,12 @@ async def fetch_historical_data(ticker: str, limit: int = 5):
         return existing_data
 
     try:
-        ts = TimeSeries(key=API_KEY, output_format="json")
-        data, _ = ts.get_weekly_adjusted(ticker)
+        url = (
+            f"{settings.ALPHA_VANTAGE_BASE_URL}?function=TIME_SERIES_WEEKLY_ADJUSTED"
+            f"&symbol={ticker}&apikey={API_KEY}"
+        )
+        data = await make_request(url)
+        time_series = data.get("Weekly Adjusted Time Series", {})
 
         # Extract relevant details and limit the number of entries
         cleaned_data = [
@@ -198,7 +225,7 @@ async def fetch_historical_data(ticker: str, limit: int = 5):
                 "volume": values["6. volume"],
                 "dividend_amount": values["7. dividend amount"],
             }
-            for date, values in data.items()
+            for date, values in time_series.items()
         ][
             :limit
         ]  # Apply the limit here

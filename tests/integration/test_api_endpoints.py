@@ -136,7 +136,7 @@ class TestStockRequestValidation:
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
-# 🎓 LEARNING EXERCISE: Testing with different HTTP methods
+# LEARNING EXERCISE: Testing with different HTTP methods
 
 
 class TestHTTPMethods:

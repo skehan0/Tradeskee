@@ -1,7 +1,7 @@
 from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Path, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, BeforeValidator
 
 from src.api.services.stock_services import (
     fetch_all_stock_data,
@@ -31,6 +31,7 @@ router = APIRouter()
 logger = build_app_logger(handlers=[StdoutLoggingService()])
 Ticker = Annotated[
     str,
+    BeforeValidator(lambda value: value.upper()),
     Path(
         min_length=1,
         max_length=10,

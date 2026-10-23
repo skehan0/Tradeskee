@@ -79,3 +79,6 @@ tradely/.env.production.local
 .cache/
 temp/
 tmp/
+
+report.md
+prod.md

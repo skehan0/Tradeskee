@@ -26,18 +26,20 @@ db = None
 
 
 # Helper function to safely convert to float
-def safe_float(value, default=0):
+def safe_float(value, default=None):
     try:
-        return (
-            float(value)
-            if value and value != "N/A" and str(value).lower() != "none"
-            else default
-        )
+        if (
+            value is None
+            or value == ""
+            or str(value).lower() in {"n/a", "none", "null"}
+        ):
+            return default
+        return float(value)
     except (ValueError, TypeError):
         return default
 
 
-def perform_analysis(stock_data: dict) -> str:
+def _legacy_perform_analysis(stock_data: dict) -> str:
     """
     Perform analysis on the stock data and return a formatted prompt.
     """
@@ -232,6 +234,140 @@ def perform_analysis(stock_data: dict) -> str:
     return analysis
 
 
+def _format_number(value, suffix=""):
+    """Format a verified number, preserving unavailable values."""
+    return "N/A" if value is None else f"{value:g}{suffix}"
+
+
+def _format_billions(value):
+    """Format a verified financial value in billions."""
+    return "N/A" if value is None else f"${value / 1e9:.1f}B"
+
+
+def perform_analysis(stock_data: dict) -> str:
+    """Build an evidence-based analysis prompt without inventing missing data."""
+    metadata = stock_data.get("metadata") or {}
+    historical = (stock_data.get("historical_data") or {}).get("historical_data", [])
+    income = (stock_data.get("income_statement") or {}).get("annual_reports", [])
+    balance = (stock_data.get("balance_sheet") or {}).get("annual_reports", [])
+    cash_flow = (stock_data.get("cash_flow") or {}).get("annual_reports", [])
+    news = stock_data.get("news") or []
+    ticker = str(
+        metadata.get("ticker") or stock_data.get("ticker") or "UNKNOWN"
+    ).upper()
+    company_name = metadata.get("name") or metadata.get("company_name") or "N/A"
+    industry = metadata.get("industry")
+    latest_income = income[0] if income else {}
+    latest_balance = balance[0] if balance else {}
+    latest_cash_flow = cash_flow[0] if cash_flow else {}
+
+    def number(section, key):
+        return safe_float(section.get(key))
+
+    prices = [safe_float(item.get("close")) for item in historical]
+    prices = [price for price in prices if price is not None]
+    current_price = safe_float(metadata.get("current_price"))
+    if current_price is None and prices:
+        current_price = prices[0]
+
+    trend = "Unavailable: at least two valid prices are required"
+    if len(prices) >= 2:
+        trend = (
+            "Rising"
+            if prices[0] > prices[1]
+            else "Declining" if prices[0] < prices[1] else "Flat"
+        )
+    sma = None
+    if len(prices) >= 5:
+        sma = sum(prices[:5]) / 5
+    ema = None
+    if len(prices) >= 2:
+        multiplier = 2 / (len(prices) + 1)
+        ema = prices[-1]
+        for price in reversed(prices[:-1]):
+            ema = (price - ema) * multiplier + ema
+
+    revenue = number(latest_income, "totalRevenue")
+    net_income = number(latest_income, "netIncome")
+    operating_cash_flow = number(latest_cash_flow, "operatingCashflow")
+    assets = number(latest_balance, "totalAssets")
+    debt = number(latest_balance, "shortLongTermDebtTotal")
+    equity = number(latest_balance, "totalShareholderEquity")
+    shares_outstanding = number(latest_balance, "commonStockSharesOutstanding")
+    eps = (
+        net_income / shares_outstanding
+        if net_income is not None and shares_outstanding not in (None, 0)
+        else None
+    )
+    profit_margin = (
+        net_income / revenue * 100
+        if revenue not in (None, 0) and net_income is not None
+        else None
+    )
+    roe = (
+        net_income / equity * 100
+        if equity not in (None, 0) and net_income is not None
+        else None
+    )
+    debt_to_assets = (
+        debt / assets * 100 if assets not in (None, 0) and debt is not None else None
+    )
+    debt_to_equity = (
+        debt / equity * 100 if equity not in (None, 0) and debt is not None else None
+    )
+    price_vs_sma = (
+        "Above"
+        if current_price is not None and sma is not None and current_price > sma
+        else "Below" if current_price is not None and sma is not None else "Unavailable"
+    )
+    readiness = "available" if prices and income else "partial"
+    if not any((prices, income, balance, cash_flow, news)):
+        readiness = "unavailable"
+
+    return f"""
+Instrument: {ticker}
+Ticker: {ticker}
+Company: {company_name}
+Industry: {industry or 'N/A'}
+Analysis readiness: {readiness}
+
+DATA COVERAGE
+- Historical prices: {len(prices)} valid observations
+- Annual income statements: {len(income)} records
+- Annual balance sheets: {len(balance)} records
+- Annual cash-flow statements: {len(cash_flow)} records
+- News items: {len(news)} retrieved items
+
+VERIFIED METRICS
+- Current Price: ${_format_number(current_price)}
+- Market Cap: {_format_billions(number(metadata, 'market_cap'))}
+- Total Revenue: {_format_billions(revenue)}
+- Net Income: {_format_billions(net_income)}
+- Operating Cash Flow: {_format_billions(operating_cash_flow)}
+- Total Assets: {_format_billions(assets)}
+- Total Debt: {_format_billions(debt)}
+- EPS: {_format_number(eps)}
+- Profit Margin: {_format_number(profit_margin, '%')}
+- ROE: {_format_number(roe, '%')}
+- Debt-to-Assets: {_format_number(debt_to_assets, '%')}
+- Debt-to-Equity: {_format_number(debt_to_equity, '%')}
+
+TECHNICAL ANALYSIS
+- Price Trend: {trend}
+- Simple Moving Average (5-day): ${_format_number(sma)}
+- Exponential Moving Average: ${_format_number(ema)}
+- Price vs SMA: {price_vs_sma}
+- Technical conclusion: {('Unavailable because insufficient validated price history' if len(prices) < 5 else 'Based only on the validated price observations above')}
+
+LIMITATIONS
+- Missing values are unavailable, not zero.
+- Provider errors, unsupported endpoints and empty datasets must not be interpreted as financial facts.
+- No company-specific conclusion is valid until the instrument identity and applicable data coverage are verified.
+
+Return a concise report that separates verified facts, deterministic calculations, interpretation and uncertainty. Do not infer missing values.
+"""
+
+
 async def send_prompt_to_agent00(prompt: str, model: Optional[str] = None) -> str:
     """
     Send the formatted prompt to the LLM asynchronously and return the response.
@@ -271,9 +407,7 @@ async def send_prompt_to_agent00(prompt: str, model: Optional[str] = None) -> st
         raise RuntimeError(f"Failed to send prompt to LLM: {str(e)}")
 
 
-async def send_to_agent01(
-    llm_response, stock_data=None, model: Optional[str] = None
-):
+async def send_to_agent01(llm_response, stock_data=None, model: Optional[str] = None):
     """
     Send the agent00 response to agent01 for final analysis.
     """
@@ -350,13 +484,9 @@ async def send_to_agent01(
                     response_text = response_body.decode(
                         response.encoding or "utf-8", errors="replace"
                     )
-                    print(
-                        f"Debug: agent01 API response status: {response.status_code}"
-                    )
+                    print(f"Debug: agent01 API response status: {response.status_code}")
                     print(f"Debug: agent01 API response text: {response_text}")
-                    raise RuntimeError(
-                        f"Error {response.status_code}: {response_text}"
-                    )
+                    raise RuntimeError(f"Error {response.status_code}: {response_text}")
     except httpx.RequestError as e:
         print(f"Debug: HTTP request error: {str(e)}")
         raise RuntimeError(f"Failed to send data to agent01: {str(e)}")
@@ -420,6 +550,8 @@ async def fetch_and_analyze_all_stock_data(ticker: str):
             "agent01_response": agent01_response,
             "stock_data": stock_data,
         }
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"Debug: Exception occurred: {e}")
         raise RuntimeError(f"Error in fetch_and_analyze_all_stock_data: {str(e)}")

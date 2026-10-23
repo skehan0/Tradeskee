@@ -57,3 +57,26 @@ def test_perform_analysis_contains_expected_fields():
     assert (
         "Simple Moving Average" in result or "Simple Moving Average (5-day)" in result
     )
+
+
+def test_perform_analysis_does_not_invent_missing_values():
+    result = perform_analysis(
+        {
+            "metadata": {"ticker": "NVDA"},
+            "historical_data": {"historical_data": []},
+            "income_statement": {"annual_reports": []},
+            "balance_sheet": {"annual_reports": []},
+            "cash_flow": {"annual_reports": []},
+            "news": [],
+            "sma": {"2026-10-22": {"SMA": "196.5905"}},
+            "ema": {},
+        }
+    )
+
+    assert "Analysis readiness: unavailable" in result
+    assert "Total Revenue: N/A" in result
+    assert "Net Income: N/A" in result
+    assert "Price Trend: Unavailable" in result
+    assert "Price vs SMA: Unavailable" in result
+    assert "Technical conclusion: Unavailable" in result
+    assert "AstraZeneca" not in result

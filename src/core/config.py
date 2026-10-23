@@ -65,6 +65,9 @@ class Settings(BaseSettings):
     )
     ALPHA_VANTAGE_BASE_URL: str = "https://www.alphavantage.co/query"
     ALPHA_VANTAGE_RATE_LIMIT: int = Field(default=5, description="API calls per minute")
+    ALPHA_VANTAGE_TIMEOUT: float = Field(
+        default=10.0, description="Alpha Vantage request timeout in seconds"
+    )
 
     # LLM Settings
     OLLAMA_BASE_URL: str = Field(

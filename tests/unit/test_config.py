@@ -161,7 +161,7 @@ class TestSettingsCaching:
         assert id(settings1) == id(settings2)
 
 
-# 🎓 LEARNING EXERCISE: Parametrized Tests
+# LEARNING EXERCISE: Parametrized Tests
 # This is a more advanced pattern - same test, multiple inputs
 
 
